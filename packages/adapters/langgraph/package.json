@@ -1,0 +1,23 @@
+{
+  "name": "@isplay/adapter-langgraph",
+  "version": "0.2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "dependencies": {
+    "@isplay/adapter-kit": "0.2.0",
+    "@isplay/core": "0.2.0",
+    "@isplay/sdk": "0.2.0"
+  },
+  "peerDependencies": {
+    "@langchain/langgraph": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@langchain/langgraph": {
+      "optional": true
+    }
+  }
+}

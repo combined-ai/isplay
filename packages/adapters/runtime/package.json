@@ -1,0 +1,14 @@
+{
+  "name": "@isplay/adapter-runtime",
+  "version": "0.2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "dependencies": {
+    "@isplay/core": "0.2.0",
+    "@isplay/sdk": "0.2.0"
+  }
+}

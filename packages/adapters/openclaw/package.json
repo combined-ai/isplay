@@ -1,0 +1,16 @@
+{
+  "name": "@isplay/adapter-openclaw",
+  "version": "0.2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "dependencies": {
+    "@isplay/adapter-kit": "0.2.0",
+    "@isplay/adapter-runtime": "0.2.0",
+    "@isplay/core": "0.2.0",
+    "@isplay/sdk": "0.2.0"
+  }
+}

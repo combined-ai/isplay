@@ -1,0 +1,22 @@
+{
+  "name": "@isplay/adapter-ai-sdk",
+  "version": "0.2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "dependencies": {
+    "@isplay/adapter-kit": "0.2.0",
+    "@isplay/sdk": "0.2.0"
+  },
+  "peerDependencies": {
+    "ai": ">=5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "ai": {
+      "optional": true
+    }
+  }
+}
