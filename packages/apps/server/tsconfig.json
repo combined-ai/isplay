@@ -1,0 +1,15 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist"
+  },
+  "references": [
+    { "path": "../../core" },
+    { "path": "../../postgres" },
+    { "path": "../../replay" },
+    { "path": "../../analysis" }
+  ],
+  "include": ["src/**/*.ts"],
+  "exclude": ["dist", "**/*.test.ts"]
+}

@@ -1,0 +1,18 @@
+{
+  "name": "@isplay/cli",
+  "version": "0.2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "isplay": "./dist/index.js"
+  },
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "dependencies": {
+    "@isplay/api-client": "0.2.0",
+    "@isplay/server": "0.2.0",
+    "commander": "^14.0.3"
+  }
+}

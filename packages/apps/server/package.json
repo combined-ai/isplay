@@ -1,0 +1,20 @@
+{
+  "name": "@isplay/server",
+  "version": "0.2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "dependencies": {
+    "@isplay/analysis": "0.2.0",
+    "@isplay/core": "0.2.0",
+    "@isplay/postgres": "0.2.0",
+    "@isplay/replay": "0.2.0",
+    "@hono/node-server": "^1.19.6",
+    "@hono/zod-openapi": "^1.1.5",
+    "hono": "^4.10.8",
+    "zod": "^4.1.13"
+  }
+}
