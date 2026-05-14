@@ -1,0 +1,13 @@
+{
+  "name": "@isplay/core",
+  "version": "0.2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "dependencies": {
+    "zod": "^4.1.13"
+  }
+}
