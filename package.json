@@ -1,0 +1,66 @@
+{
+  "name": "isplay",
+  "version": "0.2.0",
+  "private": false,
+  "description": "Replay and analysis infrastructure for AI agents",
+  "type": "module",
+  "bin": {
+    "isplay": "./packages/apps/cli/dist/index.js"
+  },
+  "workspaces": [
+    "packages/*",
+    "packages/apps/*",
+    "packages/adapters/*"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "test": "vitest run packages",
+    "check": "npm run build && npm test",
+    "dev:cli": "tsx packages/apps/cli/src/index.ts",
+    "dev:server": "tsx packages/apps/server/src/index.ts",
+    "dev:web": "npm run dev -w @isplay/web",
+    "build:web": "npm run build -w @isplay/web",
+    "start:web": "npm run start -w @isplay/web",
+    "demo:mastra-claims": "tsx --tsconfig resources/examples/mastra-claims-agent/tsconfig.json resources/examples/mastra-claims-agent/src/run.ts"
+  },
+  "keywords": [
+    "agents",
+    "observability",
+    "replay",
+    "counterfactual",
+    "analysis",
+    "debugging"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.19.6",
+    "@hono/zod-openapi": "^1.1.5",
+    "@hono/zod-validator": "^0.7.6",
+    "@mastra/core": "^1.36.0",
+    "drizzle-orm": "^0.45.1",
+    "fast-json-patch": "^3.1.1",
+    "graphile-worker": "^0.16.6",
+    "hono": "^4.10.8",
+    "mastra": "^1.10.0",
+    "pg": "^8.16.3",
+    "zod": "^4.1.13"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "@types/pg": "^8.15.6",
+    "tsx": "4.21.0",
+    "typescript": "5.9.3",
+    "vitest": "3.2.4"
+  },
+  "peerDependencies": {
+    "ai": "^6.0.190"
+  },
+  "peerDependenciesMeta": {
+    "ai": {
+      "optional": true
+    }
+  }
+}

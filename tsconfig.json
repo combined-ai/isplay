@@ -1,0 +1,22 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/core" },
+    { "path": "./packages/api-client" },
+    { "path": "./packages/postgres" },
+    { "path": "./packages/replay" },
+    { "path": "./packages/analysis" },
+    { "path": "./packages/apps/server" },
+    { "path": "./packages/apps/worker" },
+    { "path": "./packages/sdk" },
+    { "path": "./packages/adapters/kit" },
+    { "path": "./packages/adapters/runtime" },
+    { "path": "./packages/adapters/ai-sdk" },
+    { "path": "./packages/adapters/mastra" },
+    { "path": "./packages/adapters/langgraph" },
+    { "path": "./packages/adapters/openclaw" },
+    { "path": "./packages/adapters/codex" },
+    { "path": "./packages/adapters/claude-code" },
+    { "path": "./packages/apps/cli" }
+  ]
+}

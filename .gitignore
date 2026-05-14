@@ -1,0 +1,17 @@
+node_modules/
+dist/
+**/dist/
+*.tsbuildinfo
+**/*.tsbuildinfo
+.observe/
+.isplay/
+.decisiontree/
+.DS_Store
+*.log
+.next/
+**/.next/
+.source/
+**/.source/
+.playwright-mcp/
+.vercel
+.env*.local
