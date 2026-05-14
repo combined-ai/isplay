@@ -1,0 +1,161 @@
+import {
+  createId,
+  EventSchema,
+  nowIso,
+  ReplaySchema,
+  stableHash,
+  toJsonValue,
+  type EventRecord,
+  type JsonValue,
+  type Replay,
+  type ReplayPolicy,
+  type ToolFixture
+} from "@isplay/core";
+import { computeReplayDiff } from "./diff.js";
+import { ToolFixtureGateway, type ToolRequest } from "./fixture-gateway.js";
+
+export type ReplayEngineInput = {
+  replay: Replay;
+  baseEvents: EventRecord[];
+  branchEvents?: EventRecord[];
+  fixtures?: ToolFixture[];
+  divergentToolRequest?: Omit<ToolRequest, "projectId" | "replayId" | "branchId">;
+  policy?: ReplayPolicy;
+};
+
+export type ReplayEngineResult =
+  | {
+      status: "ok";
+      replay: Replay;
+      events: EventRecord[];
+      diffs: ReturnType<typeof computeReplayDiff>["diffs"];
+      metrics: ReturnType<typeof computeReplayDiff>["metrics"];
+    }
+  | {
+      status: "paused";
+      replay: Replay;
+      requirement: ReturnType<ToolFixtureGateway["resolve"]> extends infer R
+        ? R extends { status: "required"; requirement: infer Q }
+          ? Q
+          : never
+        : never;
+    }
+  | {
+      status: "error";
+      replay: Replay;
+      error: string;
+    };
+
+export class ReplayEngine {
+  run(input: ReplayEngineInput): ReplayEngineResult {
+    const policy = input.policy ?? input.replay.policy;
+    const liveError = unsupportedLivePolicy(policy);
+    if (liveError) return this.error(input.replay, liveError);
+
+    const branchEvents = input.branchEvents ?? input.baseEvents;
+    if (branchEvents.length > policy.maxSteps) return this.error(input.replay, `Replay exceeded maxSteps policy: ${policy.maxSteps}`);
+    const toolRequest = input.divergentToolRequest ?? findDivergentToolRequest(input.baseEvents, branchEvents);
+    if (toolRequest) {
+      const request = {
+        ...toolRequest,
+        projectId: input.replay.projectId,
+        replayId: input.replay.id,
+        branchId: input.replay.branchId
+      };
+      const resolution = new ToolFixtureGateway(input.fixtures ?? []).resolve(request);
+      if (resolution.status === "required") {
+        if (policy.tool === "recorded-only" || policy.tool === "blocked") {
+          return this.error(input.replay, `Missing recorded fixture for divergent tool call: ${toolRequest.toolName}`);
+        }
+        return {
+          status: "paused",
+          replay: ReplaySchema.parse({
+            ...input.replay,
+            status: "paused",
+            pausedRequirementId: resolution.requirement.id
+          }),
+          requirement: resolution.requirement
+        };
+      }
+      return this.finish({ ...input, branchEvents: appendFixtureEvent(branchEvents, input.replay, resolution.fixture) }, "aligned");
+    }
+
+    return this.finish({ ...input, branchEvents }, policy.model === "recorded-only" && policy.tool === "recorded-only" ? "exact" : "aligned");
+  }
+
+  private finish(input: ReplayEngineInput, comparability: "exact" | "aligned"): Extract<ReplayEngineResult, { status: "ok" }> {
+    const branchEvents = input.branchEvents ?? input.baseEvents;
+    const { diffs, metrics } = computeReplayDiff({
+      projectId: input.replay.projectId,
+      replayId: input.replay.id,
+      baseEvents: input.baseEvents,
+      branchEvents
+    });
+    const firstDivergence = diffs.find((diff) => diff.kind === "trace")?.patch as { firstDivergenceIndex?: number } | undefined;
+    return {
+      status: "ok",
+      replay: ReplaySchema.parse({
+        ...input.replay,
+        status: "ok",
+        firstDivergenceEventId:
+          firstDivergence?.firstDivergenceIndex !== undefined && firstDivergence.firstDivergenceIndex >= 0
+            ? branchEvents[firstDivergence.firstDivergenceIndex]?.id
+            : undefined,
+        comparability: firstDivergence?.firstDivergenceIndex === -1 ? comparability : "diverged_but_comparable",
+        metadata: { ...input.replay.metadata, replayRunId: createId("job") }
+      }),
+      events: branchEvents,
+      diffs,
+      metrics
+    };
+  }
+
+  private error(replay: Replay, error: string): Extract<ReplayEngineResult, { status: "error" }> {
+    return { status: "error", error, replay: ReplaySchema.parse({ ...replay, status: "error", error }) };
+  }
+}
+
+function unsupportedLivePolicy(policy: ReplayPolicy): string | undefined {
+  if (policy.model === "pinned-live" || policy.model === "compatible-live") return `Model policy ${policy.model} requires an explicit model executor.`;
+  if (policy.tool === "live-readonly" || policy.tool === "live-explicit") return `Tool policy ${policy.tool} requires an explicit tool executor.`;
+  return undefined;
+}
+
+function findDivergentToolRequest(baseEvents: EventRecord[], branchEvents: EventRecord[]): Omit<ToolRequest, "projectId" | "replayId" | "branchId"> | undefined {
+  const length = Math.max(baseEvents.length, branchEvents.length);
+  for (let index = 0; index < length; index += 1) {
+    const branch = branchEvents[index];
+    if (!branch || !String(branch.type).startsWith("tool.")) continue;
+    if (stableHash(baseEvents[index]?.data) !== stableHash(branch.data)) return eventToToolRequest(branch);
+  }
+  return undefined;
+}
+
+function eventToToolRequest(event: EventRecord): Omit<ToolRequest, "projectId" | "replayId" | "branchId"> {
+  const data = event.data && typeof event.data === "object" && !Array.isArray(event.data) ? event.data : {};
+  const record = data as Record<string, JsonValue>;
+  return {
+    toolName: typeof record.toolName === "string" ? record.toolName : String(event.refId ?? "unknown"),
+    args: (record.args as JsonValue | undefined) ?? {},
+    argsArtifactId: typeof record.argsArtifactId === "string" ? record.argsArtifactId : undefined,
+    sideEffectClass: typeof record.sideEffectClass === "string" ? record.sideEffectClass : undefined
+  };
+}
+
+function appendFixtureEvent(events: EventRecord[], replay: Replay, fixture: ToolFixture): EventRecord[] {
+  return [
+    ...events,
+    EventSchema.parse({
+      id: createId("event"),
+      createdAt: nowIso(),
+      projectId: replay.projectId,
+      runId: replay.runId,
+      seq: events.length,
+      type: "fixture.created",
+      refId: fixture.id,
+      occurredAt: nowIso(),
+      data: toJsonValue(fixture),
+      metadata: { replayId: replay.id, provenance: fixture.provenance }
+    })
+  ];
+}
