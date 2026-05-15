@@ -1,0 +1,92 @@
+---
+title: Replay A Counterfactual
+description: Create a branch from a checkpoint, apply one intervention, run replay, and inspect comparison output.
+---
+
+This tutorial assumes you already have a captured run with at least one checkpoint. Use [First captured run](/docs/tutorials/first-captured-run) if you need one.
+
+## 1. Discover The Trace
+
+```bash
+npx isplay discover run <runId>
+npx isplay runs checkpoints <runId>
+npx isplay runs context <runId>
+```
+
+Choose the earliest checkpoint that still contains the state needed to replay the suspected decision.
+
+## 2. Create A Branch
+
+```bash
+npx isplay branch create \
+  --from <runId> \
+  --checkpoint <checkpointId> \
+  --project "$ISPLAY_PROJECT_ID" \
+  --name "change claim status"
+```
+
+Save the returned `branchId`.
+
+## 3. Add One Intervention
+
+Create a patch file:
+
+```json
+{
+  "status": "approved"
+}
+```
+
+Attach it as a state patch:
+
+```bash
+npx isplay branch intervene <branchId> \
+  --project "$ISPLAY_PROJECT_ID" \
+  --kind state_patch \
+  --target state.claim.status \
+  --patch patch.json \
+  --description "Change claim status before decision"
+```
+
+Use one branch for one hypothesis. If you also want to remove a prompt clause, make a second branch.
+
+## 4. Run Replay
+
+```bash
+npx isplay replay <runId> \
+  --project "$ISPLAY_PROJECT_ID" \
+  --branch <branchId> \
+  --model-policy recorded-only \
+  --tool-policy pause-for-fixture
+```
+
+The replay may finish or pause. A pause is not a failure; it means the branch reached a divergent tool output and needs an explicit fixture.
+
+## 5. Inspect Output
+
+```bash
+npx isplay replay get <replayId>
+npx isplay replay events <replayId>
+npx isplay replay diff <replayId>
+npx isplay replay metrics <replayId>
+npx isplay effects replay <replayId>
+```
+
+Read the outputs in this order:
+
+<Steps>
+  <Step>Replay status: `ok`, `paused`, or `error`.</Step>
+  <Step>First divergence: which event changed first.</Step>
+  <Step>Trace diff: whether event order, types, or summaries changed.</Step>
+  <Step>Tool diff: whether tool args, names, or outputs changed.</Step>
+  <Step>Metrics: divergence step, tool sequence distance, fixture dependency count, and tool argument change marker.</Step>
+  <Step>Effects: ranked explanation leads and validity labels.</Step>
+</Steps>
+
+## 6. If Replay Paused
+
+```bash
+npx isplay replay requirements <replayId>
+```
+
+Then follow [Resolve fixtures](/docs/guides/resolve-fixtures). Do not add a fixture without recording why it is valid.

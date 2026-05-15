@@ -1,0 +1,109 @@
+---
+title: Fixture Requirements
+description: Resolve missing divergent tool outputs with explicit provenance, scope, matchers, and safety constraints.
+---
+
+Fixtures are how replay continues after a branch reaches a tool call whose output is not available from the base trace. They make side effects explicit rather than silently rerunning tools.
+
+## When Requirements Appear
+
+A fixture requirement appears when:
+
+1. Replay detects a divergent or missing tool call.
+2. No matching fixture exists for the project, tool name, scope, and args.
+3. The tool policy allows pausing, such as `pause-for-fixture`.
+
+Inspect requirements:
+
+```bash
+npx isplay replay requirements <replayId>
+npx isplay fixtures required <replayId>
+```
+
+Requirements include `toolName`, optional `branchId`, `argsArtifactId`, `argsHash`, reason, status, and metadata such as side-effect class.
+
+## Add A Fixture
+
+```bash
+npx isplay fixtures add <replayId> \
+  --project "$ISPLAY_PROJECT_ID" \
+  --tool lookup_claim \
+  --file output.json
+```
+
+If `--args-hash` is omitted, the CLI searches open requirements for the named tool and uses that requirement's `argsHash`.
+
+Then resume:
+
+```bash
+npx isplay replay resume <replayId>
+```
+
+## API Shape
+
+```json
+{
+  "projectId": "project_...",
+  "replayId": "replay_...",
+  "branchId": "branch_...",
+  "toolName": "lookup_claim",
+  "matcher": { "argsHash": "..." },
+  "output": {
+    "claimId": "C-104",
+    "status": "approved"
+  },
+  "sideEffectClass": "read",
+  "provenance": "analyst_fixture",
+  "author": "analyst@example.com",
+  "metadata": {
+    "source": "case-management-export"
+  }
+}
+```
+
+## Matchers And Scope
+
+| Matcher | Meaning | Use when |
+| --- | --- | --- |
+| `{ "argsHash": "..." }` | Matches the stable hash of tool args | Best default from an open requirement. |
+| `{ "exact": { ... } }` | Matches exact args by stable hash | Useful when building fixture files manually. |
+| Any JSON value | Stable-hash equality against args | Useful for simple args. |
+
+| Scope | How it applies |
+| --- | --- |
+| Project only | Fixture can match any replay or branch in the project. Use sparingly. |
+| Replay scoped | Fixture only matches one replay. CLI default. |
+| Branch scoped | Fixture can satisfy repeated trials for one branch. Use `metadata.scope = "branch"` through the API route behavior. |
+
+## Fixture Provenance
+
+| Provenance | Strength | Advice |
+| --- | --- | --- |
+| `recorded` | Strongest | Output copied from captured evidence or another known-good recorded run. |
+| `analyst_fixture` | Conditional | Human-supplied output from domain knowledge or an approved source. Cite source. |
+| `ai_fixture` | Weak | Model-simulated output. Use for exploration, not strong conclusions. |
+| `simulator` | Conditional | Programmatic output from an explicit simulator. Document assumptions. |
+| `live_readonly` | Conditional | Real read-only tool execution. Verify side-effect class and credentials. |
+| `live_explicit` | High risk | Real side-effecting execution. Requires explicit user approval and audit trail. |
+
+## Safety Rules
+
+- Do not rerun write, send, deploy, delete, or external mutation tools just to continue replay.
+- Prefer recorded outputs for tools whose outputs already exist in another trace.
+- Prefer branch-scoped fixtures for repeated trials over the same counterfactual.
+- Use at least two fixture variants when the tool output itself is the suspected cause.
+- Include fixture provenance and author/source metadata in final reports.
+- Treat fixture-sensitive effects as conditional even when they look compelling.
+
+## Common Problems
+
+| Problem | Cause | Fix |
+| --- | --- | --- |
+| Fixture did not satisfy requirement | `argsHash`, tool name, project, replay, or branch did not match | Copy the requirement's `argsHash` and verify scope. |
+| Replay keeps pausing | New divergent tool call appeared downstream | Add the next requirement or narrow the intervention. |
+| Tool output shape is unknown | Requirement only knows args and tool name | Inspect baseline tool outputs, tool schema, or ask a domain owner. |
+| Conclusion feels too fixture-dependent | Fixture is driving the outcome | Run fixture sensitivity variants or seek recorded evidence. |
+
+<Callout type="warning" title="Report fixture sensitivity">
+If a finding depends on a fixture, say so in the executive finding and in the validity notes. Do not blend observed base behavior and fixture-backed replay behavior as if they have the same evidentiary strength.
+</Callout>

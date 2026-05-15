@@ -1,0 +1,24 @@
+{
+  "title": "Reference",
+  "description": "Packages, CLI, API, SDK, policies, schemas, events, storage, errors, and implementation limits",
+  "pages": [
+    "index",
+    "packages",
+    "cli",
+    "api",
+    "api-client",
+    "openapi",
+    "sdk",
+    "policies",
+    "events",
+    "interventions",
+    "fixtures",
+    "metrics-diffs-effects",
+    "adapter-capabilities",
+    "schemas",
+    "storage",
+    "environment",
+    "errors",
+    "limits"
+  ]
+}

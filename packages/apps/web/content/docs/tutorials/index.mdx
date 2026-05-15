@@ -1,0 +1,28 @@
+---
+title: Tutorials
+description: Guided paths that take you from zero to a useful isplay investigation.
+---
+
+Tutorials are for learning by doing. They use concrete commands and small examples rather than covering every option.
+
+<Cards>
+  <Card title="First captured run" href="/docs/tutorials/first-captured-run" description="Start the stack, create a project, capture one run, and inspect the evidence." />
+  <Card title="Replay a counterfactual" href="/docs/tutorials/replay-a-counterfactual" description="Create a branch, add an intervention, run replay, and read diffs and metrics." />
+  <Card title="Run a hypothesis batch" href="/docs/tutorials/run-a-hypothesis-batch" description="Turn several hypotheses into an experiment and inspect requirements, statistics, and effects." />
+  <Card title="Mastra claims demo" href="/docs/tutorials/mastra-claims-demo" description="Run the bundled example and use it as a complete reference investigation." />
+  <Card title="Agent-led analysis" href="/docs/tutorials/agent-led-analysis" description="Install the isplay-analysis skill and let an analyst agent drive the workflow." />
+</Cards>
+
+## Before You Start
+
+Run the quickstart once:
+
+```bash
+npm install
+npx isplay start
+export ISPLAY_API_URL=http://127.0.0.1:7373
+npx isplay projects create --name "Tutorial Lab"
+export ISPLAY_PROJECT_ID="<id>"
+```
+
+When a tutorial asks for IDs, use the JSON returned by the previous command. Do not invent IDs.

@@ -1,0 +1,59 @@
+---
+title: Redact Captured Data
+description: Configure capture policy so evidence remains useful without leaking private fields.
+---
+
+Redaction should happen before sensitive data leaves the app process. isplay applies default pattern redaction plus optional capture policy rules.
+
+## Configure Policy
+
+```ts
+const client = init({
+  projectId: process.env.ISPLAY_PROJECT_ID!,
+  capturePolicy: {
+    defaultAction: "capture",
+    rules: [
+      { path: "customer.email", action: "mask", reason: "PII" },
+      { path: "headers.authorization", action: "drop", reason: "secret" },
+      { path: "payment.cardNumber", action: "mask", reason: "PCI" }
+    ],
+  },
+});
+```
+
+## Actions
+
+| Action | Current behavior |
+| --- | --- |
+| `capture` | Capture after default pattern redaction. |
+| `drop` | Replace the field with `null`. |
+| `hash` | Replace with `[HASHED]`. |
+| `mask` | Replace with `[REDACTED]`. |
+| `encrypt` | Replace with `[REDACTED]`; encryption is not wired. |
+| `artifact_only` | Replace with `[REDACTED]` in current implementation. |
+| `metadata_only` | Replace with `[REDACTED]` in current implementation. |
+
+## What Default Redaction Catches
+
+Default redaction masks common emails, phone numbers, API-key-like tokens, JWTs, credit-card-like numbers, and secret-looking object keys.
+
+Do not rely only on defaults for regulated data. Add explicit path rules for domain fields.
+
+## Redaction Reports
+
+Capture metadata includes a redaction report with:
+
+- `fieldsDropped`
+- `fieldsMasked`
+- `fieldsHashed`
+- `patternsMatched`
+
+Use this to audit whether a trace was aggressively redacted or unexpectedly raw.
+
+## Advice
+
+- Redact at the app boundary, not only before reporting.
+- Prefer masking stable identifiers over dropping them when analysts need to match records.
+- Do not store secrets in metadata. Metadata is still persisted.
+- Treat artifacts as sensitive even when `redactionState` says `redacted`.
+- Keep a project-level data handling policy so adapter authors make consistent choices.

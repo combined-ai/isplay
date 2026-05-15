@@ -1,0 +1,18 @@
+{
+  "title": "isplay Docs",
+  "description": "Replayable infrastructure for agent investigations",
+  "pages": [
+    "index",
+    "install",
+    "quickstart",
+    "tutorials",
+    "concepts",
+    "guides",
+    "integrations",
+    "architecture",
+    "reference",
+    "operations",
+    "examples",
+    "troubleshooting"
+  ]
+}

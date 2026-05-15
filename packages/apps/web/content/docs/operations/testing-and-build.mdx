@@ -1,0 +1,43 @@
+---
+title: Testing And Build
+description: Workspace commands for builds, tests, checks, docs, and demos.
+---
+
+## Root Commands
+
+```bash
+npm install
+npm run build
+npm test
+npm run check
+npm run build:web
+npm run demo:mastra-claims
+```
+
+| Command | Meaning |
+| --- | --- |
+| `npm run build` | TypeScript project-reference build across packages. |
+| `npm test` | Vitest tests under `packages`. |
+| `npm run check` | Repository checks configured in package scripts. |
+| `npm run build:web` | Next/Fumadocs documentation build. |
+| `npm run demo:mastra-claims` | Runs the bundled Mastra claims demo. |
+
+## Development Servers
+
+```bash
+npm run dev:server
+npm run dev:web
+npm run dev:cli -- health
+```
+
+Use `npx isplay start` when you want the full local stack with Postgres setup. Use `dev:server` when you already have `DATABASE_URL`.
+
+## Docs Build
+
+The docs app uses Next and Fumadocs MDX content from `packages/apps/web/content/docs`.
+
+```bash
+npm run build:web
+```
+
+Run this after changing docs navigation, folder structure, MDX components, or links that affect static page generation.

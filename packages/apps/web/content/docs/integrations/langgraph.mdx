@@ -1,0 +1,123 @@
+---
+title: LangGraph Adapter
+description: Capture LangGraph nodes, state checkpoints, chat models, streams, messages, tool events, updates, and tool wrappers.
+---
+
+`@isplay/adapter-langgraph` combines adapter-kit primitives with LangGraph-specific wrappers.
+
+## Install for LangGraph
+
+```bash
+npm install isplay @isplay/sdk @isplay/adapter-langgraph @langchain/langgraph
+```
+
+## Exports
+
+| Export | Purpose |
+| --- | --- |
+| `createLangGraphAdapter(options?)` | Returns adapter-kit plus LangGraph helpers. |
+| `wrapNode(client, name, node, options?)` | Capture node input, completion/error, and before/after checkpoints. |
+| `checkpointState(client, name, state, metadata?)` | Annotate and checkpoint state. |
+| `wrapChatModel(client, model, options?)` | Capture `invoke` and `stream` model calls. |
+| `instrumentStream(client, stream, options?)` | Record stream chunks while yielding original chunks. |
+| `recordStreamChunk(client, chunk, options?)` | Record one stream chunk. |
+
+## Basic Setup
+
+```ts
+import { init } from "@isplay/sdk";
+import { createLangGraphAdapter } from "@isplay/adapter-langgraph";
+
+const client = init({
+  projectId: process.env.ISPLAY_PROJECT_ID!,
+  baseUrl: process.env.ISPLAY_API_URL,
+});
+
+const isplay = createLangGraphAdapter({ client });
+```
+
+## Wrap Nodes
+
+```ts
+const triageNode = isplay.wrapNode(
+  "triage",
+  async (state) => {
+    return { decision: await triage(state.claim) };
+  },
+  { checkpointState: "both" }
+);
+```
+
+`wrapNode`:
+
+- Checkpoints `langgraph:<name>:before` and `langgraph:<name>:after` by default.
+- Annotates node input as `state_field`.
+- Records `langgraph.node.completed` or `langgraph.node.error`.
+
+## Checkpoint State
+
+```ts
+await isplay.checkpointState("before-risk-tool", state, {
+  node: "risk",
+  phase: "before",
+});
+```
+
+This emits a `state_field` annotation and a checkpoint named `langgraph:<name>`.
+
+## Wrap Chat Models
+
+```ts
+const model = isplay.wrapChatModel(rawModel, {
+  provider: "openai",
+  model: "gpt-5.4-mini",
+  operation: "planner",
+});
+
+const output = await model.invoke(messages);
+```
+
+`invoke` is captured as a `generate` model call. `stream` is captured as a `stream` model call and finishes when the async iterable is consumed.
+
+## Instrument Streams
+
+```ts
+for await (const chunk of isplay.instrumentStream(graph.stream(input), {
+  recordValuesAsCheckpoints: true,
+})) {
+  yield chunk;
+}
+```
+
+Supported stream modes include `updates`, `values`, `messages`, `custom`, `tools`, `checkpoints`, `tasks`, and `debug`.
+
+| Stream mode | Captured behavior |
+| --- | --- |
+| `messages` | Annotates assistant message chunks. |
+| `tools` | Tracks tool start/end/error when event shape is available. |
+| `updates` | Annotates state updates as `state_field`. |
+| `values` / `checkpoints` | Optional checkpoints when `recordValuesAsCheckpoints` is true. |
+| other modes | Records `langgraph.stream.<mode>` events. |
+
+## Wrap Tools
+
+```ts
+const lookupPolicy = isplay.wrapTool(
+  {
+    name: "lookup_policy",
+    sideEffectClass: "read",
+    schemaVersion: "1",
+  },
+  async (args: { section: string }) => {
+    return policyStore.get(args.section);
+  }
+);
+```
+
+LangGraph adapter tool wrapping records proposals by default.
+
+## Gotchas
+
+- `LangGraphAdapterOptions.checkpointState` is declared, but checkpoint behavior is controlled by the options passed directly to `wrapNode`.
+- Stream model calls finish only after the stream is consumed.
+- If LangGraph emits tool events without matching start events, the adapter records observed tool events rather than full tool execution records.

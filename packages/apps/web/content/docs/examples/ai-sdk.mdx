@@ -1,0 +1,43 @@
+---
+title: AI SDK Example
+description: Use AI SDK middleware and tool instrumentation.
+---
+
+```ts
+import { generateText, tool } from "ai";
+import { z } from "zod";
+import { init } from "@isplay/sdk";
+import { createIsplayMiddleware, instrumentTools } from "@isplay/adapter-ai-sdk";
+
+const client = init({
+  projectId: process.env.ISPLAY_PROJECT_ID!,
+  baseUrl: process.env.ISPLAY_API_URL,
+  serviceName: "ai-sdk-agent",
+});
+
+const middleware = createIsplayMiddleware({
+  provider: "openai",
+  model: "gpt-5.4-mini",
+});
+
+const tools = instrumentTools({
+  lookup_claim: tool({
+    description: "Look up claim details",
+    parameters: z.object({ claimId: z.string() }),
+    __isplaySideEffectClass: "read",
+    __isplaySchemaVersion: "1",
+    execute: async ({ claimId }) => ({ claimId, eligible: true }),
+  }),
+});
+
+await client.withRun({ name: "ai-sdk-run" }, async () => {
+  await generateText({
+    model: yourModel,
+    prompt: "Review claim C-104",
+    tools,
+    experimental_middleware: middleware,
+  });
+});
+```
+
+Drain streams when using `streamText` so finish events are recorded.

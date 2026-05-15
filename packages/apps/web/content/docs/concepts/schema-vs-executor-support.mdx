@@ -1,0 +1,36 @@
+---
+title: Schema Vs Executor Support
+description: How to understand features that are modeled in schemas but not fully executable in the current local engine.
+---
+
+isplay intentionally models more of the replay and experiment domain than the local engine fully executes today. This is useful because adapters, managed runtimes, and future executors need a stable vocabulary, but documentation must be honest about the difference.
+
+## Three Support Levels
+
+| Level | Meaning | Example |
+| --- | --- | --- |
+| Schema-supported | The value or record shape exists in `@isplay/core`. | `live-explicit` tool policy. |
+| API-supported | The server accepts, stores, or returns the shape. | Experiment trial plans include `concurrency`. |
+| Executor-supported | Runtime code actually performs the behavior. | Recorded model replay and pause-for-fixture tool replay. |
+
+## Important Current Boundaries
+
+| Area | Current local behavior |
+| --- | --- |
+| Live model replay | Schema exists; local engine errors without an explicit model executor. |
+| Live tool replay | Schema exists; local engine errors without an explicit tool executor. |
+| Experiment concurrency | Parsed but current runner is synchronous and serial. |
+| `maxReplays` and `stopRule` | Parsed but not fully enforced by the current runner. |
+| `RunExperiment.wait` and CLI `--no-wait` | Parsed, but server runs synchronously and returns results. |
+| Worker jobs | Handlers are registered as stubs. |
+| Redaction encryption | Policy exists; current implementation masks rather than encrypts. |
+
+## How To Read Docs And Results
+
+If a page says "schema-supported," treat it as a contract shape, not a runtime promise. If a page says "supported by the current local engine," the repository code implements it without an external executor.
+
+For final reports, name the runtime support level:
+
+```text
+This experiment used schema-supported `live-readonly` policy, but no live tool executor was configured, so the replay did not execute the live branch.
+```

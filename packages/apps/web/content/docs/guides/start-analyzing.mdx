@@ -1,0 +1,105 @@
+---
+title: Start Analyzing
+description: After capture is installed, use the skill or CLI to discover a run, test hypotheses, resolve fixtures, and write a bounded RCA.
+---
+
+This is the first workflow to run after capture is wired and at least one run exists.
+
+## Agent Path
+
+```text
+Use $isplay-analysis. Find my latest captured run in project <projectId>, inspect the catalog and context inventory, branch likely hypotheses, run replay experiments with recorded model policy and pause-for-fixture tool policy, resolve fixture requirements when safe, and return an RCA report with validity labels.
+```
+
+The agent should return IDs and evidence, not just prose.
+
+## Manual Path
+
+<Tabs items={["Discover", "Baseline", "Hypothesize", "Replay", "Report"]}>
+<Tab>
+
+```bash
+npx isplay runs list --project "$ISPLAY_PROJECT_ID"
+npx isplay discover run <runId>
+npx isplay runs context <runId>
+npx isplay runs checkpoints <runId>
+```
+
+Capture the catalog, context summary, and checkpoint list.
+
+</Tab>
+<Tab>
+
+Write down:
+
+- User/task input.
+- Model provider, model, settings, and operation.
+- System/developer/user prompt constraints.
+- Tool schemas available to the model.
+- Tool proposals, args, executions, outputs, and errors.
+- Retrieval and memory items.
+- Checkpoint state.
+- Final response or side effect.
+
+</Tab>
+<Tab>
+
+Turn possible causes into narrow tests:
+
+```text
+Because <context/tool/state evidence> entered at <point>, the agent chose <behavior>.
+If we <intervention>, then <metric or effect> should <direction>, under <policy/fixture assumptions>.
+```
+
+</Tab>
+<Tab>
+
+```bash
+npx isplay branch create --from <runId> --checkpoint <checkpointId> --project "$ISPLAY_PROJECT_ID"
+npx isplay branch intervene <branchId> --project "$ISPLAY_PROJECT_ID" --kind <kind> --target <targetId> --patch patch.json
+npx isplay replay <runId> --project "$ISPLAY_PROJECT_ID" --branch <branchId>
+npx isplay replay requirements <replayId>
+```
+
+If requirements are open, resolve them before interpreting final effects.
+
+</Tab>
+<Tab>
+
+```bash
+npx isplay replay diff <replayId>
+npx isplay replay metrics <replayId>
+npx isplay effects replay <replayId>
+npx isplay analyze <runId> --project "$ISPLAY_PROJECT_ID" --replay <replayId>
+```
+
+Your report should cite replay IDs, effect IDs, fixture provenance, comparability, and validity labels.
+
+</Tab>
+</Tabs>
+
+## Manual RCA Template
+
+```text
+The strongest tested explanation is <hypothesis>.
+Under model policy <modelPolicy> and tool policy <toolPolicy>, intervention <intervention> changed <effect/metric>.
+The first divergence was step <n>, comparing <base event> to <branch event>.
+The result is <supported/inconclusive/invalid> because <validity labels>.
+Fixture dependence: <none/provenance and scope>.
+Residual uncertainty: <missing context, low-N, non-comparable trace, nondeterminism, or untested sibling hypotheses>.
+Next experiment: <smallest follow-up>.
+```
+
+## Stop Conditions
+
+Stop and report uncertainty when:
+
+- There is no usable checkpoint before the suspected cause.
+- Context inventory lacks the prompt, tool, retrieval, memory, or state evidence needed for the question.
+- Replay is non-comparable after a broad intervention.
+- Fixture requirements cannot be satisfied safely.
+- The result depends on an AI or simulator fixture and no sensitivity check was run.
+
+<Callout type="warning" title="Bound the answer">
+The final output should read like an audit trail, not a confident story. Tie every claim to observed trace evidence or replay output.
+</Callout>

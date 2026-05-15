@@ -1,0 +1,70 @@
+---
+title: Annotate Context
+description: Capture model-visible, tool-visible, state-only, and metadata-only decision inputs.
+---
+
+Context annotation is how you turn hidden framework state into searchable evidence. Without it, analysts see events but not the decision inputs that made those events likely.
+
+## Basic Annotation
+
+```ts
+await client.annotateContext({
+  kind: "retrieval_chunk",
+  path: "retrieval.policy[0]",
+  value: {
+    source: "policy-v7",
+    text: "Refunds over 500 require manager approval.",
+    score: 0.91,
+  },
+  visibility: "model_visible",
+  provenance: "policy-index",
+});
+```
+
+## What To Annotate
+
+| Kind | Recommended path |
+| --- | --- |
+| `system_message` | `prompt.system` |
+| `developer_message` | `prompt.developer[0]` |
+| `user_message` | `prompt.user` |
+| `prompt_clause` | `prompt.system.clauses[0]` |
+| `retrieval_chunk` | `retrieval.<source>[<rank>]` |
+| `memory_item` | `memory.<store>.<key>` |
+| `state_field` | `state.<field>` |
+| `tool_schema` | `tools.<toolName>.schema` |
+| `tool_argument` | `tools.<toolName>.args` |
+| `tool_result` | `tools.<toolName>.result` |
+| `model_setting` | `model.settings.temperature` |
+
+## Path Design
+
+Good context paths are stable, scoped, and searchable:
+
+```text
+prompt.system.clauses[2]
+retrieval.claimPolicy[0]
+memory.customerProfile.riskScore
+state.claim.status
+tools.lookup_claim.schema
+model.settings.temperature
+```
+
+Avoid using random IDs in paths unless they are the real domain key. Put volatile IDs in metadata.
+
+## Visibility
+
+| Visibility | Use |
+| --- | --- |
+| `model_visible` | Anything the model could see or infer directly. |
+| `tool_visible` | Tool inputs/results that a tool saw but the model may not have seen. |
+| `state_only` | Runtime state used for decisions or branching. |
+| `metadata_only` | Settings, versions, counters, and metadata. |
+
+## Advice
+
+- Prefer many targeted context items over one giant prompt blob.
+- Capture prompt clauses when individual instructions may be causal.
+- Add provenance to retrieval and memory.
+- Capture tool schemas before tool choice, not only executed args.
+- Use redaction policy before annotating sensitive values.

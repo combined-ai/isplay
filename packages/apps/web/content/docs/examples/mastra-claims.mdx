@@ -1,0 +1,23 @@
+---
+title: Mastra Claims Example
+description: Run and inspect the bundled claims-agent demo.
+---
+
+```bash
+npx isplay start
+export ISPLAY_API_URL=http://127.0.0.1:7373
+npx isplay projects create --name "Mastra Claims"
+export ISPLAY_PROJECT_ID="<project id>"
+npm run demo:mastra-claims
+```
+
+Then inspect:
+
+```bash
+npx isplay runs list --project "$ISPLAY_PROJECT_ID"
+npx isplay discover run <runId>
+npx isplay runs context <runId>
+npx isplay runs checkpoints <runId>
+```
+
+Source files are under `resources/examples/mastra-claims-agent`.

@@ -1,0 +1,103 @@
+---
+title: isplay Documentation
+description: Replayable investigation infrastructure for AI agents, with structured capture, counterfactual replay, fixture-aware experiments, and bounded evidence reports.
+---
+
+isplay captures agent runs as structured evidence and lets humans or analyst agents ask controlled counterfactual questions about that evidence. It records what entered context, what the model proposed, what tools actually did, which checkpoints are safe to branch from, what changed under replay, and how trustworthy each conclusion is.
+
+<Callout type="info" title="Core idea">
+isplay is not a root-cause oracle. It is an evidence system: every conclusion should cite the captured trace, the replay policy, fixture provenance, diffs, metrics, effects, and validity labels that support it.
+</Callout>
+
+<Cards>
+  <Card title="Install" href="/docs/install" description="Use the skill, or choose an adapter and wire capture manually." />
+  <Card title="Quickstart" href="/docs/quickstart" description="Capture a run after installation and start the first investigation." />
+  <Card title="Tutorials" href="/docs/tutorials" description="End-to-end learning paths for first capture, first replay, hypothesis batches, and the Mastra demo." />
+  <Card title="Concepts" href="/docs/concepts" description="Standalone explanations for runs, events, context, branches, replays, fixtures, experiments, validity, and storage." />
+  <Card title="Guides" href="/docs/guides" description="Task-oriented workflows for instrumentation, replay design, fixtures, experiments, reports, and production operation." />
+  <Card title="Integrations" href="/docs/integrations" description="Adapter kit, AI SDK, Mastra, LangGraph, managed runtimes, Codex, Claude Code, and OpenClaw." />
+  <Card title="Reference" href="/docs/reference" description="Exact package, CLI, API, SDK, schema, policy, event, storage, error, and limits reference." />
+</Cards>
+
+## What isplay Covers
+
+<TypeTable
+  type={{
+    capture: { type: "baseline evidence", description: "Runs, ordered events, model calls, tool proposals, tool executions, artifacts, context annotations, checkpoints, and redaction metadata." },
+    context: { type: "inventory", description: "Model-visible prompts, messages, retrieval chunks, memory, state fields, tool schemas, tool arguments, tool results, and model settings." },
+    branching: { type: "hypotheses", description: "Checkpoint branches plus typed interventions over prompts, messages, state, tool arguments/results, retrieval, model config, policy, or human decisions." },
+    replay: { type: "controlled comparison", description: "Recorded model replay, fixture-aware tool replay, divergence detection, trace diffs, tool diffs, state diffs, metrics, and comparability labels." },
+    experiments: { type: "batch analysis", description: "Hypothesis batches materialize branches and arms, run repeated replays, collect requirements, summarize statistics, and rank effects." },
+    reporting: { type: "bounded RCA", description: "Analysis runs convert diffs and metrics into evidence nodes, evidence edges, validity labels, scores, and recommended next actions." }
+  }}
+/>
+
+## Investigation Loop
+
+<Steps>
+  <Step>Capture a baseline run with enough context, tools, artifacts, and checkpoints to explain the decision later.</Step>
+  <Step>Discover the run catalog and context inventory before writing any theory.</Step>
+  <Step>Convert each plausible cause into one narrow branch intervention from the earliest useful checkpoint.</Step>
+  <Step>Replay with recorded model policy and pause-for-fixture tool policy unless the investigation explicitly needs another policy.</Step>
+  <Step>Resolve fixture requirements with recorded, analyst, simulator, AI, or live provenance and keep that provenance visible.</Step>
+  <Step>Read diffs, metrics, statistics, ranked effects, comparability, and validity labels before reporting.</Step>
+</Steps>
+
+## Recommended Paths
+
+<Tabs items={["Agent-led", "CLI", "SDK"]}>
+  <Tab>
+
+```text
+Use $isplay-analysis to set up isplay for this repo, choose the right adapter, capture my next run, and return an evidence-bounded RCA report.
+```
+
+Use this when you want an AI analyst to drive the JSON-first loop and produce a bounded report.
+
+  </Tab>
+  <Tab>
+
+```bash
+npx isplay start
+export ISPLAY_API_URL="<api url shown by isplay start>"
+npx isplay projects create --name "Agent Lab"
+export ISPLAY_PROJECT_ID="<project id>"
+npx isplay discover run <runId>
+```
+
+Use this when you want exact command control, CI scripting, or a repeatable manual analysis path.
+
+  </Tab>
+  <Tab>
+
+```ts
+import { init } from "@isplay/sdk";
+
+const client = init({
+  projectId: process.env.ISPLAY_PROJECT_ID!,
+  baseUrl: process.env.ISPLAY_API_URL,
+});
+
+await client.withRun({ name: "claim-review" }, async () => {
+  await client.checkpoint("before-decision", { stage: "ready" });
+});
+```
+
+Use this when you own the app or framework integration and can instrument the run lifecycle directly.
+
+  </Tab>
+</Tabs>
+
+## Where To Go Next
+
+<Cards>
+  <Card title="Install" href="/docs/install" description="The streamlined install page for skills, adapters, and first capture." />
+  <Card title="Quickstart" href="/docs/quickstart" description="Capture the first run after installation." />
+  <Card title="First captured run" href="/docs/tutorials/first-captured-run" description="A guided, concrete path from project creation to captured run evidence." />
+  <Card title="Object model" href="/docs/concepts/object-model" description="The durable objects and how they relate." />
+  <Card title="Capture design" href="/docs/guides/capture" description="How to capture enough prompts, tools, state, and checkpoints for useful replay." />
+  <Card title="Replay and branches" href="/docs/guides/replay" description="How interventions are applied and how to interpret diffs and comparability." />
+  <Card title="Fixture handling" href="/docs/guides/fixtures" description="How to continue safely when a divergent tool output is missing." />
+  <Card title="Experiments" href="/docs/guides/experiments" description="Hypothesis batches, trial planning, statistics, effects, and low-N caveats." />
+  <Card title="Operations" href="/docs/operations" description="Local stack behavior, Postgres, artifacts, testing, known stubs, and troubleshooting." />
+</Cards>

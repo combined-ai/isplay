@@ -1,0 +1,48 @@
+---
+title: Capture Model
+description: What isplay captures, how capture differs from replay, and how to decide what evidence belongs in a trace.
+---
+
+Capture is the act of turning an agent execution into structured evidence. The goal is not to record every byte forever. The goal is to record enough decision input, model behavior, tool behavior, state, and provenance that a later replay can test a narrow hypothesis.
+
+## Capture Layers
+
+| Layer | What to capture | Why it matters |
+| --- | --- | --- |
+| Run lifecycle | Run name, status, timing, metadata | Defines the execution boundary. |
+| Context | System/developer/user/assistant messages, prompt clauses, retrieval, memory, state, tool schemas, settings | Explains what the model and runtime could see. |
+| Model calls | Provider, model, operation, request, response, settings, usage, errors | Lets replay copy recorded outputs and compare final behavior. |
+| Tool proposals | Tool name, call ID, args artifact/hash | Captures model intent before runtime side effects. |
+| Tool executions | Args, output, error, result hash, side-effect class | Captures what actually happened. |
+| Checkpoints | Named state and schema/version metadata | Gives replay a branch point. |
+| Artifacts | Payloads too large or sensitive for inline records | Keeps records small and hashable. |
+
+## Capture Is Not Replay
+
+Capture is observational. It records a baseline. Replay is counterfactual. It applies branch interventions and policies to ask "what would have changed if this input/state/tool result/config had been different?"
+
+That distinction matters:
+
+- Do not mutate app behavior just to capture evidence.
+- Do not use capture-only traces as proof of causality.
+- Do not assume an adapter can replay just because it can observe.
+- Do use capture metadata to make future replay possible: hashes, schema versions, side-effect classes, checkpoint names, and context paths.
+
+## Redaction Boundary
+
+Captured payloads pass through `toJsonValue()` and capture policy redaction before becoming artifacts or metadata. Default redaction masks emails, phone numbers, API-key-like tokens, JWTs, credit-card-like numbers, and secret-looking object keys. Capture policy can also mask or drop fields by path.
+
+<Callout type="warn" title="Current redaction semantics">
+`hash`, `encrypt`, `artifact_only`, and `metadata_only` are policy actions, but current replacement output is intentionally conservative. `hash` emits `[HASHED]`; `encrypt`, `artifact_only`, and `metadata_only` mask as `[REDACTED]` rather than wiring encryption or alternate storage semantics.
+</Callout>
+
+## Capture Quality Checklist
+
+| Question | Good sign |
+| --- | --- |
+| Can I identify the run and project later? | Run name and metadata include the task or external request ID. |
+| Can I see what the model saw? | Context inventory has prompt messages, prompt clauses, tool schemas, retrieval, memory, and model settings. |
+| Can I branch before the suspected decision? | There is a checkpoint immediately before tool selection, final reasoning, or action. |
+| Can I compare tool behavior? | Tool args and outputs have artifacts and hashes. |
+| Can I replay safely? | Tool executions have side-effect classes and risky tools are classified. |
+| Can I explain uncertainty? | Fixtures, policy, comparability, and validity labels are preserved. |

@@ -1,0 +1,34 @@
+---
+title: Architecture
+description: How isplay packages, APIs, storage, replay, experiments, adapters, and docs fit together.
+---
+
+isplay is a TypeScript monorepo. The runtime path is deliberately simple: adapters and SDK capture evidence, the API stores records, replay and analysis compute comparisons, and the CLI/agent skill orchestrate investigations.
+
+<Cards>
+  <Card title="Data flow" href="/docs/architecture/data-flow" description="From agent execution to artifacts, events, replay outputs, and reports." />
+  <Card title="Server and store" href="/docs/architecture/server-and-store" description="Hono API, OpenAPI, Postgres records, projections, artifacts, and migrations." />
+  <Card title="Replay engine" href="/docs/architecture/replay-engine" description="How branches, interventions, policies, fixtures, diffs, metrics, and effects are produced." />
+  <Card title="Experiment runner" href="/docs/architecture/experiment-runner" description="How hypothesis batches become branches, trials, replays, statistics, and ranked effects." />
+  <Card title="Worker and jobs" href="/docs/architecture/worker-and-jobs" description="Current background job surface and implementation status." />
+</Cards>
+
+## Package Layers
+
+| Layer | Packages |
+| --- | --- |
+| Schemas and utilities | `@isplay/core` |
+| API access and capture | `@isplay/api-client`, `@isplay/sdk` |
+| Replay and analysis | `@isplay/replay`, `@isplay/analysis` |
+| Persistence | `@isplay/postgres` |
+| Apps | `@isplay/cli`, `@isplay/server`, `@isplay/worker`, `@isplay/web` |
+| Integrations | `@isplay/adapter-kit`, `@isplay/adapter-ai-sdk`, `@isplay/adapter-mastra`, `@isplay/adapter-langgraph`, `@isplay/adapter-runtime`, `@isplay/adapter-codex`, `@isplay/adapter-claude-code`, `@isplay/adapter-openclaw` |
+
+## Design Principles
+
+- Store evidence in durable records, not only logs.
+- Separate model intent from tool execution.
+- Make replay policy explicit.
+- Pause for missing divergent tool output instead of inventing it silently.
+- Keep fixture provenance visible.
+- Label validity and comparability instead of overclaiming.

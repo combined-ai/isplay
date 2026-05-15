@@ -1,0 +1,48 @@
+---
+title: Classify Tools And Side Effects
+description: Mark tool risk so replay can avoid unsafe behavior and explain fixture dependence.
+---
+
+Tool side-effect classes tell replay and analysts how dangerous it would be to execute or substitute a tool. The value should be set before execution.
+
+## Side-Effect Classes
+
+| Class | Use for |
+| --- | --- |
+| `none` | Pure computation, formatting, local deterministic transforms. |
+| `read` | Database reads, search, retrieval, file reads, HTTP GETs. |
+| `write` | Local file writes, cache updates, internal database mutation. |
+| `external_mutation` | Sending email, deploying, deleting, purchasing, billing, public API mutation. |
+| `unknown` | Anything not classified. Treat conservatively. |
+
+## Set It Explicitly
+
+```ts
+await client.startToolExecution({
+  toolName: "send_refund_email",
+  args,
+  sideEffectClass: "external_mutation",
+});
+```
+
+Runtime adapters can infer from tool names, but inference is a fallback. Important tools need explicit classification.
+
+## Policy Implications
+
+| Side-effect class | Recommended replay policy |
+| --- | --- |
+| `none` | Recorded-only or simulated may be acceptable. |
+| `read` | `pause-for-fixture` by default; live-readonly only with executor and time-drift awareness. |
+| `write` | Fixture or blocked unless you are in an isolated sandbox. |
+| `external_mutation` | Block or fixture. Do not live replay in RCA. |
+| `unknown` | Treat like side-effecting until proven otherwise. |
+
+## Tool Wrapper Checklist
+
+- Capture proposal before execution.
+- Capture execution start before calling the tool.
+- Capture output or error in all paths.
+- Set `sideEffectClass`.
+- Store args and results as artifacts for hashing.
+- Add schema version when the tool contract can change.
+- Include implementation version for tools whose behavior changes over time.

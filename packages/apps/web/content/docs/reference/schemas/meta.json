@@ -1,0 +1,14 @@
+{
+  "title": "Schemas",
+  "description": "Core Zod schema domains exported by @isplay/core",
+  "pages": [
+    "index",
+    "runtime-records",
+    "model-tool-checkpoints",
+    "context-inventory",
+    "replay-records",
+    "experiments",
+    "analysis-effects",
+    "capture-policy"
+  ]
+}

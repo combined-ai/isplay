@@ -1,0 +1,176 @@
+---
+title: Replay And Branches
+description: Create checkpoint branches, attach targeted interventions, run replay jobs, and interpret trace diffs, tool diffs, metrics, and comparability.
+---
+
+Replay answers a bounded question: what changed under this explicit intervention, policy, and fixture set? It does not prove universal causality.
+
+## Branch From A Checkpoint
+
+```bash
+npx isplay branch create \
+  --from <runId> \
+  --checkpoint <checkpointId> \
+  --project "$ISPLAY_PROJECT_ID" \
+  --name "remove escalation clause"
+```
+
+A branch records `baseRunId`, `checkpointId`, optional parent branch, name, replay policy, and metadata. Choose the checkpoint before the suspected cause.
+
+## Attach An Intervention
+
+```bash
+npx isplay branch intervene <branchId> \
+  --project "$ISPLAY_PROJECT_ID" \
+  --kind prompt_patch \
+  --target <event-or-ref-id> \
+  --patch patch.json \
+  --description "Remove the duplicate receipt escalation clause"
+```
+
+CLI interventions target an event ID, `refId`, or event type. Experiment specs can target richer selectors such as `refId`, `eventId`, `eventType`, `toolName`, `modelCallId`, `artifactId`, or `jsonPointer`.
+
+## Patch Shapes
+
+<Tabs items={["Text Replace", "Mask Span", "JSON Patch", "Tool Args"]}>
+  <Tab>
+
+```json
+{
+  "operations": [
+    {
+      "op": "replace_text",
+      "path": "/prompt",
+      "value": {
+        "search": "Escalate suspected fraud.",
+        "replacement": ""
+      }
+    }
+  ]
+}
+```
+
+  </Tab>
+  <Tab>
+
+```json
+{
+  "operations": [
+    {
+      "op": "mask_span",
+      "path": "/messages/0/content",
+      "value": {
+        "start": 20,
+        "end": 55,
+        "replacement": "[MASKED]"
+      }
+    }
+  ]
+}
+```
+
+  </Tab>
+  <Tab>
+
+```json
+{
+  "operations": [
+    { "op": "replace", "path": "/settings/temperature", "value": 0 },
+    { "op": "remove", "path": "/tools/2" }
+  ]
+}
+```
+
+  </Tab>
+  <Tab>
+
+```json
+{
+  "toolName": "risk-signals",
+  "args": {
+    "claimId": "C-104",
+    "claimedAmount": 900,
+    "merchant": "City Travel Desk"
+  }
+}
+```
+
+When a tool args patch includes `args`, replay recomputes `argsHash` and drops stale `argsArtifactId`.
+
+  </Tab>
+</Tabs>
+
+If a JSON Patch operation fails, the current replay code preserves the original value and attaches an `isplayPatch` record instead of crashing the entire replay. Treat that as a signal to inspect the target path.
+
+## Run Replay
+
+```bash
+npx isplay replay <runId> \
+  --project "$ISPLAY_PROJECT_ID" \
+  --branch <branchId> \
+  --model-policy recorded-only \
+  --tool-policy pause-for-fixture
+```
+
+`POST /v1/replays` executes immediately. It returns `201` when replay finishes and `202` when replay pauses for a fixture requirement.
+
+## Inspect Replay Output
+
+```bash
+npx isplay replay get <replayId>
+npx isplay replay events <replayId>
+npx isplay replay diff <replayId>
+npx isplay replay metrics <replayId>
+npx isplay replay effects <replayId>
+npx isplay replay requirements <replayId>
+```
+
+The top-level shortcut also works:
+
+```bash
+npx isplay diff <replayId>
+```
+
+## How Replay Decides
+
+<Steps>
+  <Step>Reject unsupported live policies if no model or tool executor exists.</Step>
+  <Step>Copy base events and mark them with replay metadata.</Step>
+  <Step>Apply interventions to matching events by `id`, `refId`, or `type`; unmatched interventions become synthetic `intervention.created` events.</Step>
+  <Step>Detect divergent tool calls by stable hashing event signatures.</Step>
+  <Step>Resolve fixtures by project, tool name, optional replay or branch scope, and matcher.</Step>
+  <Step>Pause with an open requirement if a divergent tool output is missing and policy allows fixtures.</Step>
+  <Step>Compute diffs, metrics, comparability, and effects when replay can finish.</Step>
+</Steps>
+
+## Comparability
+
+| Value | Meaning | Report advice |
+| --- | --- | --- |
+| `exact` | Event signatures matched under exact policies. | Strong replay evidence, assuming capture quality is good. |
+| `aligned` | Replay reached a comparable terminal state without event identity equality. | Useful for broad comparison, still cite policy. |
+| `diverged_but_comparable` | First divergence exists but downstream comparison is still meaningful. | Cite first divergence and changed descendants. |
+| `non_comparable` | Branch drift broke meaningful comparison. | Do not make causal claims; narrow the intervention or choose a later checkpoint. |
+
+## Replay Metrics
+
+| Metric | Interpretation |
+| --- | --- |
+| `first_divergence_step` | `-1` means no event divergence; otherwise inspect that event first. |
+| `tool_sequence_distance` | Larger values mean tool order or identity changed more. |
+| `fixture_dependency_count` | Any positive value requires fixture-sensitive wording. |
+| `tool_argument_changed` | `1` means args or arg references changed at the tool divergence point. |
+
+## Policy Advice
+
+| Goal | Model policy | Tool policy | Notes |
+| --- | --- | --- | --- |
+| Default RCA | `recorded-only` | `pause-for-fixture` | Safest default. Missing divergent tools become explicit requirements. |
+| Exact trace check | `recorded-only` | `recorded-only` | Fails rather than pausing when divergent tool output is missing. |
+| Nondeterminism probe | `determinism-probe` | `pause-for-fixture` | Only useful when repeated execution or executor support exists. |
+| Side-effect audit | `blocked` | `blocked` | Use to prevent tool execution in managed runtime paths. |
+| Live exploration | `pinned-live` or `compatible-live` | `live-readonly` or `live-explicit` | Requires explicit executors; current local engine fails fast without them. |
+
+<Callout type="warn" title="Do not hide fixture dependence">
+If replay uses analyst, AI, simulator, or live fixtures, conclusions should include fixture provenance and usually carry `sensitive_to_fixture`.
+</Callout>

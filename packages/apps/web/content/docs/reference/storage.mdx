@@ -1,0 +1,39 @@
+---
+title: Storage Reference
+description: Postgres tables, projections, artifact metadata, migrations, and backup implications.
+---
+
+## Tables
+
+```text
+projects
+runs
+events
+artifacts
+projections
+```
+
+## Events
+
+The `events` table stores ordered run events and enforces unique `(run_id, seq)`.
+
+## Artifacts
+
+Artifact metadata includes:
+
+| Field | Meaning |
+| --- | --- |
+| `objectKey` | Relative object key under artifact root. |
+| `sha256` | Payload digest. |
+| `sizeBytes` | Payload size. |
+| `mimeType` | Defaults to `application/json`. |
+| `compression` | Optional compression marker. |
+| `redactionState` | `raw`, `redacted`, or `metadata_only`. |
+
+## Projections
+
+The projections table stores JSONB domain records for model/tool projections, branches, replays, fixtures, experiments, context, analysis, and derived outputs.
+
+## Backup
+
+Back up Postgres and artifacts together. The pair is the evidence store.

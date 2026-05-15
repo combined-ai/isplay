@@ -1,0 +1,54 @@
+---
+title: SDK Capture Example
+description: Minimal direct SDK instrumentation.
+---
+
+```ts
+import { init } from "@isplay/sdk";
+
+const isplay = init({
+  projectId: process.env.ISPLAY_PROJECT_ID!,
+  baseUrl: process.env.ISPLAY_API_URL,
+  serviceName: "example-agent",
+});
+
+await isplay.withRun({ name: "example-run" }, async () => {
+  await isplay.annotateContext({
+    kind: "system_message",
+    path: "prompt.system",
+    value: "Use policy evidence only.",
+  });
+
+  await isplay.checkpoint("before-tool-choice", { stage: "ready" });
+
+  const model = await isplay.startModelCall({
+    provider: "demo",
+    model: "recorded",
+    operation: "generate",
+    params: { prompt: "Look up claim C-104" },
+    settings: { temperature: 0 },
+  });
+
+  const proposal = await isplay.recordToolProposal({
+    modelCallId: model.id,
+    toolName: "lookup_claim",
+    args: { claimId: "C-104" },
+  });
+
+  const tool = await isplay.startToolExecution({
+    proposalId: proposal.id,
+    toolCallId: proposal.toolCallId,
+    toolName: "lookup_claim",
+    args: { claimId: "C-104" },
+    sideEffectClass: "read",
+  });
+
+  await isplay.finishToolExecution(tool, {
+    output: { eligible: true, limit: 500 },
+  });
+
+  await isplay.finishModelCall(model, {
+    output: { text: "Approve up to 500." },
+  });
+});
+```

@@ -1,0 +1,179 @@
+---
+title: Capture Runs
+description: Record agent execution as structured evidence with run boundaries, events, artifacts, model calls, tools, context inventory, redaction, and checkpoints.
+---
+
+Capture is the foundation of every investigation. A useful capture answers four questions: what did the agent see, what did it decide to do, what did external tools return, and where can replay safely branch?
+
+## Minimal SDK Capture
+
+```ts
+import { init } from "@isplay/sdk";
+
+const client = init({
+  projectId: process.env.ISPLAY_PROJECT_ID!,
+  baseUrl: process.env.ISPLAY_API_URL,
+  serviceName: "claims-agent",
+});
+
+await client.withRun({ name: "claim-review", metadata: { claimId: "C-104" } }, async () => {
+  await client.recordEvent("agent.input", { claimId: "C-104" });
+  await client.checkpoint("before-triage", {
+    claimId: "C-104",
+    stage: "triage",
+  });
+});
+```
+
+`withRun()` creates the run, emits `run.started` from the store, installs async context for subsequent events, and patches run status to `ok` or `error` when the callback completes.
+
+## What To Capture
+
+<TypeTable
+  type={{
+    run: { type: "withRun", description: "Name, agent ID, service, task metadata, start/end status, and run-level identifiers." },
+    context: { type: "annotateContext", description: "System/developer/user/assistant messages, prompt clauses, retrieval chunks, memory, state fields, tool schemas, model settings." },
+    model: { type: "startModelCall / finishModelCall", description: "Provider, model, operation, settings, request artifact, response artifact, usage, logprobs, status, and error." },
+    tools: { type: "proposal + execution", description: "Tool name, call ID, args artifact, output artifact, hashes, schema and implementation metadata, side-effect class." },
+    checkpoints: { type: "checkpoint", description: "Named state snapshots with schema metadata that replay branches can target." },
+    artifacts: { type: "uploadArtifact / createArtifact", description: "JSON payloads after capture policy and redaction, linked to records by artifact ID." },
+    events: { type: "recordEvent / appendEvents", description: "Framework-specific and custom evidence that should remain in the ordered run stream." }
+  }}
+/>
+
+## Model Lifecycle
+
+```ts
+const modelCall = await client.startModelCall({
+  provider: "openai",
+  model: "gpt-5.4-mini",
+  operation: "generate",
+  params: {
+    system: "Prefer policy-grounded answers.",
+    messages: [{ role: "user", content: "Triage claim C-104" }],
+    tools: toolDefinitions,
+  },
+  settings: { temperature: 0.2, maxSteps: 8 },
+});
+
+try {
+  const output = await model.generate();
+  await client.finishModelCall(modelCall, {
+    output,
+    usage: output.usage,
+    logprobs: output.logprobs,
+  });
+} catch (error) {
+  await client.finishModelCall(modelCall, { error });
+  throw error;
+}
+```
+
+Model request and response payloads become artifacts. Context inventory extracts `prompt`, `system`, `messages`, retrieval arrays, memory arrays, tool definitions, and settings from those artifacts when possible.
+
+## Tool Lifecycle
+
+```ts
+const proposal = await client.recordToolProposal({
+  modelCallId: modelCall.id,
+  toolCallId: "call_1",
+  toolName: "lookup_claim",
+  args: { claimId: "C-104" },
+});
+
+const execution = await client.startToolExecution({
+  proposalId: proposal.id,
+  toolCallId: proposal.toolCallId,
+  toolName: "lookup_claim",
+  args: { claimId: "C-104" },
+  sideEffectClass: "read",
+});
+
+try {
+  const output = await lookupClaim("C-104");
+  await client.finishToolExecution(execution, { output });
+} catch (error) {
+  await client.finishToolExecution(execution, { error });
+  throw error;
+}
+```
+
+Separate proposal from execution when the model proposes tools before the runtime executes them. This distinction matters for replay because a prompt or schema intervention may change the model's proposed call even if the tool never executed in the baseline.
+
+## Context Annotations
+
+```ts
+await client.annotateContext({
+  kind: "prompt_clause",
+  path: "prompt.system.escalation",
+  value: "Escalate claims with duplicate receipt signals.",
+  provenance: "source-control",
+  visibility: "model_visible",
+});
+
+await client.annotateContext({
+  kind: "retrieval_chunk",
+  path: "policy.refunds.section-4",
+  value: chunk,
+  provenance: "vector_search",
+  metadata: { source: "refund-policy-v3" },
+});
+```
+
+Good paths are stable, human-readable, and specific. Prefer `prompt.system.escalation` over `prompt.0` when an analyst may later target that clause.
+
+## Checkpoint Strategy
+
+| Checkpoint | Place it when | Why |
+| --- | --- | --- |
+| `input.loaded` | After task input and initial state are normalized | Good for testing prompt, input, memory, retrieval, or tool availability causes. |
+| `before-tool` | Right before a risky or high-impact tool call | Good for testing tool args, tool schema, and fixture behavior. |
+| `after-tool` | After a tool output is integrated into state | Good for testing downstream interpretation of observed tool results. |
+| `before-final` | Before final answer or side effect | Good for testing final response wording or human decision substitution. |
+
+Do not only checkpoint at the end. A checkpoint after the suspected cause often cannot test that cause cleanly.
+
+## Redaction And Capture Policy
+
+```ts
+const client = init({
+  projectId: process.env.ISPLAY_PROJECT_ID!,
+  capturePolicy: {
+    defaultAction: "capture",
+    rules: [
+      { path: "customerEmail", action: "mask", reason: "PII" },
+      { path: "authorization", action: "drop", reason: "secret" },
+    ],
+  },
+});
+```
+
+Current redaction behavior:
+
+| Action | Current implementation |
+| --- | --- |
+| `capture` | Store the value after default pattern redaction. |
+| `drop` | Replace with `null` and count as dropped. |
+| `mask` | Replace with `[REDACTED]`. |
+| `metadata_only` | Replace with `[REDACTED]`. |
+| `artifact_only` | Replace with `[REDACTED]`. |
+| `encrypt` | Replace with `[REDACTED]`; encryption is not currently wired. |
+| `hash` | Replace with `[HASHED]`; no digest is currently emitted. |
+
+Default string redaction masks emails, phone-like values, API-key-like tokens, JWTs, and credit-card-like numbers. Secret-looking object keys such as `authorization`, `password`, `token`, `cookie`, and `private_key` are masked automatically.
+
+## Capture Quality Checklist
+
+- Run names and metadata let you identify the task later.
+- Every model call has provider, model, operation, request payload, response payload, settings, usage, and error if applicable.
+- Every tool has both proposal and execution when the framework exposes both.
+- Tool side-effect classes are deliberate, not guessed from names for important tools.
+- Tool schemas and descriptions are captured because they influence model tool choice.
+- Retrieval and memory are annotated, not just embedded inside opaque prompts.
+- Checkpoints exist before the first meaningful decision and before side-effecting tools.
+- Redaction policy is applied before data leaves the application process.
+- Streamed calls are fully consumed so capture can finish.
+
+<Callout type="warning" title="Sparse capture limits analysis">
+If prompts, retrieval, memory, tool args, or checkpoints are missing, the analyst should say exactly what evidence is missing. isplay can compare what it has, not reconstruct what was never captured.
+</Callout>

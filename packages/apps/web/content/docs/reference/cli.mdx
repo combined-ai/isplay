@@ -1,0 +1,213 @@
+---
+title: CLI Reference
+description: Every isplay CLI command, option, environment variable, input format, output behavior, and caveat.
+---
+
+The CLI is designed for JSON-first agent workflows. API-facing commands print pretty JSON. Add global `--json` when you also want structured error payloads.
+
+```bash
+isplay --help
+isplay --json <command>
+```
+
+## Environment
+
+| Variable | Use |
+| --- | --- |
+| `ISPLAY_API_URL` | API base URL. Defaults to `http://127.0.0.1:7373`. |
+| `ISPLAY_PROJECT_ID` | Fallback project for commands with `--project`. |
+| `DATABASE_URL` | Used by `isplay start` instead of Docker Postgres. |
+| `USER` | Fixture author for `fixtures add`. |
+
+## Server Commands
+
+| Command | Options | Output | Notes |
+| --- | --- | --- | --- |
+| `isplay start` | `--port <port>` default `7373` | Text lines with API URL and masked Postgres URL | Creates `.isplay/artifacts`, starts Docker Postgres if needed, runs migrations, starts API. |
+| `isplay init` | none | Text path | Creates `.isplay/artifacts`. |
+| `isplay doctor` | global `--json` | Text key/value or JSON | Checks Node version, cwd, Docker availability, and API URL. |
+| `isplay health` | none | JSON | Calls `GET /health`. |
+| `isplay jobs events <jobId>` | none | SSE text | Current server returns simple started/finished events. |
+
+## Project Commands
+
+```bash
+isplay projects create --name "Local Agent Lab"
+isplay projects get <projectId>
+```
+
+| Command | Options | API |
+| --- | --- | --- |
+| `projects create` | `--name <name>` default `isplay Project` | `POST /v1/projects` |
+| `projects get` | `<projectId>` | `GET /v1/projects/{id}` |
+
+## Run Commands
+
+```bash
+isplay runs list --project "$ISPLAY_PROJECT_ID"
+isplay runs inspect <runId>
+isplay runs events <runId>
+isplay runs checkpoints <runId>
+isplay runs catalog <runId>
+isplay runs context <runId>
+```
+
+| Command | Purpose |
+| --- | --- |
+| `runs list [--project]` | List runs, newest first. |
+| `runs inspect <runId>` | Fetch one run record. |
+| `runs events <runId>` | Fetch ordered base run events. |
+| `runs checkpoints <runId>` | List checkpoints for branch creation. |
+| `runs catalog <runId>` | Show observed projections, capabilities, and next actions. |
+| `runs context <runId>` | Show context inventory. |
+
+## Branch Commands
+
+```bash
+isplay branch create \
+  --from <runId> \
+  --checkpoint <checkpointId> \
+  --project "$ISPLAY_PROJECT_ID" \
+  --name "remove clause"
+
+isplay branch intervene <branchId> \
+  --project "$ISPLAY_PROJECT_ID" \
+  --kind prompt_patch \
+  --target <targetId> \
+  --patch patch.json \
+  --description "Remove one prompt clause"
+```
+
+| Command | Options | Purpose |
+| --- | --- | --- |
+| `branch get <branchId>` | none | Fetch branch record. |
+| `branch create` | `--from`, `--checkpoint`, optional `--project`, `--name` | Create branch from a run checkpoint. |
+| `branch intervene <branchId>` | `--kind`, optional `--project`, `--target`, `--patch`, `--description` | Attach typed intervention. |
+| `branch interventions <branchId>` | none | List branch interventions. |
+
+`--patch` accepts inline JSON or a `.json` file. YAML-looking inputs are rejected in this build.
+
+## Artifact And Context Commands
+
+```bash
+isplay artifacts create --project "$ISPLAY_PROJECT_ID" --kind tool.fixture.output --file output.json
+isplay artifacts get <artifactId>
+
+isplay context run <runId>
+isplay context model-call <modelCallId>
+isplay context checkpoint <checkpointId>
+isplay context search search.json
+```
+
+`context search` expects:
+
+```json
+{
+  "projectId": "project_...",
+  "runId": "run_...",
+  "kinds": ["retrieval_chunk", "tool_result"],
+  "query": "refund",
+  "limit": 25
+}
+```
+
+## Replay Commands
+
+```bash
+isplay replay <runId> \
+  --project "$ISPLAY_PROJECT_ID" \
+  --branch <branchId> \
+  --model-policy recorded-only \
+  --tool-policy pause-for-fixture
+```
+
+| Command | Purpose |
+| --- | --- |
+| `replay <runId>` | Create and immediately execute a replay. |
+| `replay get <replayId>` | Fetch replay record. |
+| `replay events <replayId>` | Fetch replay events, falling back to base run events if none were stored. |
+| `replay diff <replayId>` | Fetch replay diffs. |
+| `replay metrics <replayId>` | Fetch deterministic metrics. |
+| `replay effects <replayId>` | Fetch replay-level ranked effects. |
+| `replay requirements <replayId>` | Fetch fixture requirements. |
+| `replay resume <replayId>` | Re-execute a paused replay after fixtures are added. |
+| `diff <replayId>` | Top-level shortcut for `replay diff`. |
+
+CLI replay creation sets `drift: "continue_to_terminal"` and `maxSteps: 100`.
+
+## Fixture Commands
+
+```bash
+isplay fixtures required <replayId>
+isplay fixtures add <replayId> \
+  --project "$ISPLAY_PROJECT_ID" \
+  --tool lookup_claim \
+  --file output.json \
+  --args-hash <optional>
+```
+
+`fixtures add` uses `provenance: "analyst_fixture"` and `author: process.env.USER`. If `--args-hash` is omitted, it looks for an open requirement on that replay and tool.
+
+## Discovery And Analysis Commands
+
+```bash
+isplay discover run <runId>
+isplay discover project <projectId>
+isplay analyze <runId> --project "$ISPLAY_PROJECT_ID" --replay <replayId>
+```
+
+`discover run` returns a combined payload:
+
+```json
+{
+  "catalog": {},
+  "contextSummary": {},
+  "contextItems": []
+}
+```
+
+## Experiment Commands
+
+```bash
+isplay experiments create experiment.json
+isplay experiments get <experimentId>
+isplay experiments run <experimentId>
+isplay experiments run experiment.json
+isplay experiments results <experimentId>
+isplay experiments requirements <experimentId>
+isplay experiments trial-matrix <experimentId>
+isplay experiments statistics <experimentId>
+isplay experiments arm-comparison <experimentId>
+isplay experiments effects <experimentId>
+```
+
+`experiments` has alias `experiment`. When `experiments run` receives inline JSON or a `.json` path, it creates and runs a hypothesis batch. Otherwise it runs an existing experiment ID.
+
+<Callout type="warning" title="No-wait caveat">
+`experiments run --no-wait` is parsed by the CLI, but the current server route runs synchronously and returns results.
+</Callout>
+
+## Effect Commands
+
+```bash
+isplay effects list <experimentId>
+isplay effects replay <replayId>
+isplay effects rank rank-input.json
+isplay effects explain <effectId> --experiment <experimentId>
+isplay requirements list <experimentId>
+```
+
+`effects rank` calls the effect ranking route. `effects explain` currently selects a matching effect from experiment effects and prints it.
+
+## Input Rules
+
+| Input | Supported |
+| --- | --- |
+| Inline JSON object or array | Yes |
+| `.json` file | Yes |
+| `.yaml` / `.yml` | Detected but rejected |
+| Arbitrary text | Treated as a file path for JSON parsing |
+
+## Exit And Error Behavior
+
+API errors throw `IsplayApiError` with status and body. Without global `--json`, CLI errors print human-readable diagnostics. With `--json`, they print structured details when available.

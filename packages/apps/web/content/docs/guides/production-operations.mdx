@@ -1,0 +1,48 @@
+---
+title: Production Operations
+description: Run isplay outside local development with external Postgres, durable artifacts, redaction, and explicit safety policies.
+---
+
+The local `npx isplay start` path is optimized for development. Production or team use should run explicit infrastructure.
+
+## Infrastructure
+
+| Component | Recommendation |
+| --- | --- |
+| Postgres | Run managed or self-hosted Postgres and set `DATABASE_URL`. |
+| Artifacts | Mount durable storage or set `ISPLAY_ARTIFACTS_DIR` to backed-up storage. |
+| API | Run `@isplay/server` behind your normal service controls. |
+| CLI/SDK | Set `ISPLAY_API_URL` in every environment that captures or inspects runs. |
+| Projects | Create one project per app/service/customer boundary. |
+| Redaction | Configure capture policy in app code before data leaves the process. |
+
+## Environment Variables
+
+```bash
+export DATABASE_URL=postgres://...
+export ISPLAY_ARTIFACTS_DIR=/var/lib/isplay/artifacts
+export ISPLAY_API_URL=https://isplay.internal.example
+export ISPLAY_PROJECT_ID=project_...
+```
+
+## Operational Safety
+
+- Use `recorded-only` model policy and `pause-for-fixture` tool policy for default investigations.
+- Do not live replay side-effecting tools in production RCA.
+- Classify tools before capture reaches production.
+- Keep artifact backups aligned with Postgres backups.
+- Treat the artifact store as sensitive evidence storage.
+- Review retention rules before capturing regulated data.
+
+## Known Current Limits
+
+The current server runs replay and experiments synchronously. Worker handlers are registered as stubs. If you need high-volume asynchronous replay, treat that as an integration project rather than a toggle.
+
+## Verification Commands
+
+```bash
+npx isplay doctor
+npx isplay health
+npx isplay projects get "$ISPLAY_PROJECT_ID"
+npx isplay runs list --project "$ISPLAY_PROJECT_ID"
+```

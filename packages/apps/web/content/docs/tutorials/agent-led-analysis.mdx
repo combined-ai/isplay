@@ -1,0 +1,50 @@
+---
+title: Agent-Led Analysis
+description: Install the bundled isplay-analysis skill and let an analyst agent run a bounded investigation.
+---
+
+The repo includes an `isplay-analysis` skill for Codex-style agents. It teaches the agent to start the stack, select a project, discover runs, form narrow hypotheses, run replay or experiments, resolve fixture requirements, and write validity-bounded reports.
+
+## 1. Install The Skill
+
+```bash
+npx skills add isplay/isplay --skill isplay-analysis
+```
+
+The Skills CLI will detect supported agents and ask where to install the skill. Restart the agent app after installation.
+
+## 2. Start With A Direct Prompt
+
+```text
+Use $isplay-analysis. Start isplay if needed, create or select a project, wire the right adapter for this project, capture my next run, discover the trace, replay likely hypotheses, resolve fixture requirements when safe, and return an evidence-bounded RCA report with validity labels.
+```
+
+## 3. What The Agent Should Do
+
+<Steps>
+  <Step>Verify `ISPLAY_API_URL` and `ISPLAY_PROJECT_ID`.</Step>
+  <Step>Capture or select the target run.</Step>
+  <Step>Run `discover run`, context inventory, checkpoint listing, and event inspection.</Step>
+  <Step>Write an observed baseline before forming a cause claim.</Step>
+  <Step>Create one branch per hypothesis.</Step>
+  <Step>Use recorded model replay and pause-for-fixture tool replay by default.</Step>
+  <Step>Resolve fixture requirements only with explicit provenance and scope.</Step>
+  <Step>Return a report with first divergence, metrics, effects, comparability, validity labels, and next actions.</Step>
+</Steps>
+
+## 4. How To Review The Output
+
+Check that the final answer includes:
+
+| Required item | Why |
+| --- | --- |
+| Base run ID and project ID | Makes the investigation reproducible. |
+| Replay or experiment IDs | Lets you inspect evidence later. |
+| Replay policy | Defines evidence strength. |
+| Fixture provenance | Explains conditional dependencies. |
+| First divergence | Shows where behavior changed. |
+| Metrics and effects | Connects trace differences to the conclusion. |
+| Validity labels | Prevents overclaiming. |
+| Next actions | Makes uncertainty actionable. |
+
+If the report jumps straight to a cause without these items, ask it to rerun discovery and cite evidence.

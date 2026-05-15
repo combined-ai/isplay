@@ -1,0 +1,53 @@
+---
+title: Interpret Diffs And Metrics
+description: Read replay outputs without overclaiming.
+---
+
+Replay output is a set of comparison records, not a single verdict. Read status, diffs, metrics, effects, and validity labels together.
+
+## Read In This Order
+
+<Steps>
+  <Step>`replay get`: status, policy, branch, first divergence, comparability, paused requirement, and error.</Step>
+  <Step>`replay events`: branch event stream or fallback events.</Step>
+  <Step>`replay diff`: trace, tool, state, output, metric, or causal diffs.</Step>
+  <Step>`replay metrics`: deterministic numeric comparison signals.</Step>
+  <Step>`effects replay`: ranked effect candidates and labels.</Step>
+  <Step>`analyze`: persisted report summary and validity score.</Step>
+</Steps>
+
+## Key Metrics
+
+| Metric | Meaning |
+| --- | --- |
+| `first_divergence_step` | `-1` means no event divergence; otherwise first changed event index. |
+| `tool_sequence_distance` | Normalized difference between base and branch tool event sequences. |
+| `fixture_dependency_count` | Number of fixture events used in branch output. |
+| `tool_argument_changed` | `1` when tool args or arg refs changed at divergence. |
+
+## Comparability
+
+| Value | Interpretation |
+| --- | --- |
+| `exact` | No meaningful divergence detected. |
+| `aligned` | Replay stayed aligned enough for direct comparison. |
+| `diverged_but_comparable` | Behavior changed, but downstream comparison is still useful. |
+| `non_comparable` | Drift broke the comparison. Do not claim causal support. |
+
+## Practical Reading Patterns
+
+| Pattern | Likely conclusion |
+| --- | --- |
+| Early divergence plus changed tool args | The intervention changed tool selection or args. Inspect proposal/execution records. |
+| Fixture dependency count > 0 | Any downstream claim is fixture-sensitive. |
+| Non-comparable diff | Narrow the branch or choose a later checkpoint. |
+| No divergence and no output change | The tested hypothesis is not supported under this policy. |
+| Divergence only after final wording | The cause may affect presentation more than decision logic. |
+
+## Report Cautiously
+
+Use this skeleton:
+
+```text
+Under <policy>, intervention <id> first diverged at <event>. The replay produced <diff summary>. Metrics showed <metric summary>. Effects ranked <effect> as <status>. Validity labels were <labels>. Therefore, <bounded conclusion>.
+```

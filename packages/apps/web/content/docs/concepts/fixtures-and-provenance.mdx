@@ -1,0 +1,53 @@
+---
+title: Fixtures And Provenance
+description: How missing divergent tool outputs are represented, satisfied, scoped, and qualified.
+---
+
+A fixture is a declared answer to "what should this tool have returned under the branch?" Fixtures are necessary because a branch can change a tool argument, retrieval query, external call, or state in a way that the base trace did not observe.
+
+## Requirement Lifecycle
+
+<Steps>
+  <Step>Replay reaches a tool execution whose output cannot be copied from the base trace.</Step>
+  <Step>The fixture gateway tries to match an existing fixture by project, branch/replay scope, tool name, and matcher fields such as `argsHash`.</Step>
+  <Step>If no fixture matches, replay emits `fixture.required`, stores a `FixtureRequirement`, pauses, and records the paused requirement ID.</Step>
+  <Step>An analyst or tool adds a `ToolFixture` with explicit output evidence and provenance.</Step>
+  <Step>Replay resumes and emits `fixture.created` or fixture-use records, then diffs and metrics include fixture dependency information.</Step>
+</Steps>
+
+## Provenance Values
+
+| Provenance | Meaning | Evidence note |
+| --- | --- | --- |
+| `recorded` | Copied from captured trace evidence. | Strongest fixture source. |
+| `analyst_fixture` | Supplied by a human analyst or approved source. | Cite author and basis. |
+| `ai_fixture` | Simulated by an AI model. | Useful for exploration, weak for final claims. |
+| `simulator` | Produced by declared simulator. | Strength depends on simulator fidelity. |
+| `live_readonly` | Fresh live read-only output. | Can introduce time drift. |
+| `live_explicit` | Fresh live side-effecting output with explicit approval. | High-risk and usually not appropriate for RCA replay. |
+
+## Fixture Scope
+
+Fixtures can be scoped by replay, branch, project, tool name, args hash, schema version, implementation version, side-effect class, and metadata. Narrow scope prevents accidental reuse.
+
+Use a narrow fixture when:
+
+- The output depends on time, identity, tenant, or environment.
+- The tool has side effects.
+- The branch changes arguments or state in a way that only one replay should use.
+
+Use a broader fixture when:
+
+- It is a recorded deterministic lookup.
+- The matcher includes a stable `argsHash`.
+- Reuse across repetitions is part of the experiment design.
+
+## Reporting Fixture Dependence
+
+Fixture dependence should appear in final RCA wording. For example:
+
+```text
+Under recorded model replay and an analyst fixture for `lookup_policy`, removing the refund clause changed the tool args at the first divergence. This finding is sensitive_to_fixture because the downstream output depends on the supplied fixture.
+```
+
+The important part is not the exact phrasing. The important part is that provenance and dependency are visible.

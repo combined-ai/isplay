@@ -1,0 +1,162 @@
+---
+title: Experiments And Effects
+description: Batch hypotheses, run repeated replay trials, resolve requirements, inspect statistics, and rank evidence-backed effects.
+---
+
+Experiments scale the branch-and-replay loop. Use them when you have several plausible causes, need repeated trials, or want one structured result that includes requirements, trial matrix, statistics, and ranked effects.
+
+## Experiment Shape
+
+```json
+{
+  "projectId": "project_...",
+  "name": "claims-risk-counterfactuals",
+  "baseRunIds": ["run_..."],
+  "checkpointSelector": { "kind": "first" },
+  "hypotheses": [
+    {
+      "statement": "Lower risk tool output should change downstream escalation.",
+      "interventions": [
+        {
+          "kind": "tool_args_patch",
+          "target": {
+            "refId": "tool_...",
+            "toolName": "risk-signals"
+          },
+          "expectedBaseHash": "context_hash_if_available",
+          "patch": {
+            "toolName": "risk-signals",
+            "args": {
+              "claimId": "C-104",
+              "claimedAmount": 900
+            }
+          },
+          "description": "Lower disputed amount in risk signal call"
+        }
+      ],
+      "expectedEffect": {
+        "metric": "tool_argument_changed",
+        "direction": "increase"
+      }
+    }
+  ],
+  "trialPlan": {
+    "repetitions": 3,
+    "concurrency": 1,
+    "maxReplays": 3,
+    "seedPolicy": "none",
+    "stopRule": "none"
+  },
+  "policy": {
+    "model": "recorded-only",
+    "tool": "pause-for-fixture",
+    "drift": "continue_to_terminal",
+    "maxSteps": 100
+  },
+  "validityGates": [
+    { "kind": "minimum_trials", "value": 3 }
+  ],
+  "metadata": {
+    "owner": "claims-quality"
+  }
+}
+```
+
+## Run Paths
+
+<Tabs items={["Create Draft", "Run Existing", "One-Call Batch", "Inspect"]}>
+  <Tab>
+
+```bash
+npx isplay experiments create experiment.json
+npx isplay experiments get <experimentId>
+```
+
+Creates the experiment, hypotheses, branches, interventions, and arms without immediately running the one-call batch path.
+
+  </Tab>
+  <Tab>
+
+```bash
+npx isplay experiments run <experimentId>
+```
+
+Runs current arms. The current server runner is synchronous and serial even though the schema includes `wait`, `concurrency`, and `maxReplays`.
+
+  </Tab>
+  <Tab>
+
+```bash
+npx isplay experiments run experiment.json
+```
+
+When the argument looks like JSON or a `.json` path, the CLI calls the hypothesis batch API, which creates the plan and runs it.
+
+  </Tab>
+  <Tab>
+
+```bash
+npx isplay experiments results <experimentId>
+npx isplay experiments requirements <experimentId>
+npx isplay experiments trial-matrix <experimentId>
+npx isplay experiments statistics <experimentId>
+npx isplay experiments effects <experimentId>
+npx isplay effects explain <effectId> --experiment <experimentId>
+```
+
+  </Tab>
+</Tabs>
+
+## Checkpoint Selection
+
+| Selector | Behavior | Use when |
+| --- | --- | --- |
+| `{ "kind": "first" }` | Uses the first checkpoint on each base run | Testing input, prompt, retrieval, memory, tool schema, or early state causes. |
+| `{ "kind": "latest" }` | Uses the last checkpoint | Testing final answer, late-stage state, or post-tool interpretation. |
+| `{ "kind": "name", "value": "before-final" }` | Finds a named checkpoint | The application emits semantic checkpoints. |
+
+Avoid selecting a checkpoint after the suspected cause has already occurred.
+
+## Validity Gates
+
+| Gate | Meaning |
+| --- | --- |
+| `minimum_trials` | Require at least `value` trials before treating a result as robust. |
+| `max_fixture_dependency_rate` | Limit the share of runs that depend on fixtures. |
+| `max_non_comparable_rate` | Limit branch drift that breaks comparison. |
+| `requires_effect_size` | Require a named metric to exceed a threshold. |
+
+Current effect ranking still marks low-N findings inconclusive until enough attempts exist. Gates are a planning and reporting contract even where enforcement is still evolving.
+
+## Reading Results
+
+Read experiment output in this order:
+
+1. `experiment.status`: `paused` means fixture work remains; `completed` means all current arms finished.
+2. `requirements`: open requirements block stronger conclusions.
+3. `trialMatrix`: map arms to replay IDs and statuses.
+4. `statistics`: trial count, comparable count, fixture dependency rate, non-comparable rate, metric summaries.
+5. `effects`: ranked candidates with score, status, confidence interval, evidence refs, labels, and recommended next actions.
+6. Replay-level diffs and metrics for top candidates.
+
+## Effect Types
+
+| Effect type | Trigger | Typical next action |
+| --- | --- | --- |
+| `tool_args_changed` | `tool_argument_changed > 0` | Inspect tool diff and run sibling prompt/context patches. |
+| `fixture_sensitive` | Fixture count or fixture use exists | Add alternate fixtures or seek recorded outputs. |
+| `early_divergence` | First divergence is early and comparable | Inspect unchanged prefix and narrow upstream intervention. |
+| `non_comparable` | Replay comparability is broken | Restart from a later checkpoint or reduce intervention size. |
+
+## Trial Planning Advice
+
+- Use `repetitions: 1` for smoke tests.
+- Use `repetitions: 2` or `3` for quick confidence checks.
+- Use `minimum_trials` gates when writing comparative claims.
+- Use branch-scoped fixtures for repeated trials of the same intervention.
+- Run alternate fixtures when the tool output is the suspected cause.
+- Treat `--no-wait` as future-facing: the current server route still returns after synchronous execution.
+
+<Callout type="info" title="Low-N interpretation">
+A single replay can identify a promising effect, but it should usually be called inconclusive. Repeated comparable trials and fixture sensitivity checks are what make a finding robust.
+</Callout>

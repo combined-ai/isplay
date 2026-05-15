@@ -1,0 +1,128 @@
+---
+title: First Captured Run
+description: Capture a small SDK-backed run and inspect the resulting run, events, context, and checkpoints.
+---
+
+This tutorial creates a project, captures one run with the SDK, then inspects the evidence with the CLI.
+
+## 1. Start The Stack
+
+```bash
+npx isplay start
+export ISPLAY_API_URL=http://127.0.0.1:7373
+npx isplay health
+```
+
+Create a project:
+
+```bash
+npx isplay projects create --name "First Capture"
+export ISPLAY_PROJECT_ID="<project id>"
+```
+
+## 2. Capture A Run
+
+Put this code in a local script that can import `@isplay/sdk` from the workspace or installed package:
+
+```ts
+import { init } from "@isplay/sdk";
+
+const client = init({
+  projectId: process.env.ISPLAY_PROJECT_ID!,
+  baseUrl: process.env.ISPLAY_API_URL,
+  serviceName: "tutorial-agent",
+  capturePolicy: {
+    defaultAction: "capture",
+    rules: [{ path: "customer.email", action: "mask", reason: "PII" }],
+  },
+});
+
+await client.withRun({ name: "first-captured-run" }, async () => {
+  await client.annotateContext({
+    kind: "system_message",
+    path: "prompt.system",
+    value: "Answer only from captured policy evidence.",
+  });
+
+  await client.annotateContext({
+    kind: "state_field",
+    path: "state.claim.status",
+    value: "pending_review",
+    visibility: "state_only",
+  });
+
+  await client.checkpoint("before-decision", {
+    claimId: "C-104",
+    customer: { email: "person@example.com" },
+    status: "pending_review",
+  });
+
+  const call = await client.startModelCall({
+    provider: "demo",
+    model: "recorded",
+    operation: "generate",
+    params: { prompt: "Should claim C-104 be approved?" },
+    settings: { temperature: 0 },
+  });
+
+  const proposal = await client.recordToolProposal({
+    modelCallId: call.id,
+    toolName: "lookup_claim",
+    args: { claimId: "C-104" },
+  });
+
+  const execution = await client.startToolExecution({
+    proposalId: proposal.id,
+    toolCallId: proposal.toolCallId,
+    toolName: "lookup_claim",
+    args: { claimId: "C-104" },
+    sideEffectClass: "read",
+  });
+
+  await client.finishToolExecution(execution, {
+    output: { eligible: true, limit: 500 },
+  });
+
+  await client.finishModelCall(call, {
+    output: { text: "Approve up to 500." },
+    usage: { inputTokens: 120, outputTokens: 12 },
+  });
+});
+```
+
+## 3. Find The Run
+
+```bash
+npx isplay runs list --project "$ISPLAY_PROJECT_ID"
+npx isplay runs inspect <runId>
+```
+
+Look for:
+
+- `status: "ok"`
+- the run name
+- project ID
+- start and end timestamps
+
+## 4. Inspect Evidence
+
+```bash
+npx isplay runs events <runId>
+npx isplay runs checkpoints <runId>
+npx isplay runs context <runId>
+npx isplay discover run <runId>
+```
+
+You should see:
+
+| Evidence | Why it matters |
+| --- | --- |
+| `run.started` and `run.finished` | The run lifecycle was captured. |
+| `model_call.started` and `model_call.finished` | The model boundary is replayable as recorded evidence. |
+| `tool.proposed`, `tool.started`, `tool.finished` | Model intent and runtime execution are separated. |
+| `checkpoint.created` | A branch point exists. |
+| Context inventory | Prompt and state items are searchable. |
+
+## 5. Next Step
+
+Continue with [Replay a counterfactual](/docs/tutorials/replay-a-counterfactual). You already have the run and checkpoint IDs needed for the next tutorial.

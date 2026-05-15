@@ -1,0 +1,47 @@
+---
+title: Local Stack
+description: What `npx isplay start` does and how to verify the local API.
+---
+
+`npx isplay start` is the fastest local development path.
+
+## Startup Steps
+
+It does four things:
+
+1. Creates `.isplay/artifacts` in the current working directory.
+2. Uses `DATABASE_URL` when set; otherwise starts or reuses a Docker container named `isplay-postgres`.
+3. Runs Postgres migrations and ensures the artifact directory exists.
+4. Starts the Hono API server and embedded worker setup on the requested port.
+
+The default API URL is:
+
+```text
+http://127.0.0.1:7373
+```
+
+The OpenAPI document is available at:
+
+```text
+http://127.0.0.1:7373/openapi.json
+```
+
+## Commands
+
+```bash
+npx isplay start
+export ISPLAY_API_URL=http://127.0.0.1:7373
+npx isplay health
+npx isplay doctor
+```
+
+Use `--port` to choose a different local port:
+
+```bash
+npx isplay start --port 7474
+export ISPLAY_API_URL=http://127.0.0.1:7474
+```
+
+## Docker Behavior
+
+When `DATABASE_URL` is absent, CLI startup expects Docker to be available and starts or reuses the dev Postgres container. When `DATABASE_URL` is present, Docker is skipped.

@@ -1,0 +1,36 @@
+---
+title: Packages Reference
+description: Package names, exports, responsibilities, dependencies, and intended users.
+---
+
+| Package | Purpose | Primary users |
+| --- | --- | --- |
+| `@isplay/core` | Zod schemas, inferred types, IDs, JSON helpers, redaction. | All packages and direct schema consumers. |
+| `@isplay/api-client` | Typed HTTP client around the server API. | SDK, CLI, integrations, custom tooling. |
+| `@isplay/sdk` | Capture client plus API surface convenience methods. | App instrumentation and adapters. |
+| `@isplay/replay` | Replay engine, fixture gateway, interventions, diffs, event summaries. | Server runners and advanced embedding. |
+| `@isplay/analysis` | Validity labels, analysis runs, effect ranking. | Server and report tooling. |
+| `@isplay/postgres` | Store, migrations, schema, artifact persistence. | Server deployments. |
+| `@isplay/cli` | `isplay` command-line interface. | Humans, scripts, analyst agents. |
+| `@isplay/server` | Hono API server and synchronous runners. | API deployments. |
+| `@isplay/worker` | Placeholder Graphile Worker handlers. | Future async processing. |
+| `@isplay/web` | Next/Fumadocs website. | Documentation site. |
+| `@isplay/adapter-kit` | Shared adapter primitives. | Custom framework adapters. |
+| `@isplay/adapter-ai-sdk` | Vercel AI SDK middleware and tool wrappers. | AI SDK apps. |
+| `@isplay/adapter-mastra` | Mastra helper adapter. | Mastra apps. |
+| `@isplay/adapter-langgraph` | LangGraph node/model/stream/tool wrappers. | LangGraph apps. |
+| `@isplay/adapter-runtime` | Managed runtime capability and fixture primitives. | Runtime adapter authors. |
+| `@isplay/adapter-codex` | Codex managed runtime hooks and JSONL helpers. | Codex integrations. |
+| `@isplay/adapter-claude-code` | Claude Code hooks and stream-json helpers. | Claude Code integrations. |
+| `@isplay/adapter-openclaw` | OpenClaw plugin hook integration. | OpenClaw integrations. |
+
+## Peer Dependencies
+
+| Package | Peer dependency |
+| --- | --- |
+| `@isplay/adapter-ai-sdk` | `ai >=5.0.0` |
+| `@isplay/adapter-langgraph` | `@langchain/langgraph >=1.0.0` |
+
+## Root Requirements
+
+The repository requires Node `>=22.5.0`.

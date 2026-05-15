@@ -1,0 +1,16 @@
+{
+  "title": "Integrations",
+  "description": "Framework adapters, managed runtime integrations, and shared adapter primitives",
+  "pages": [
+    "index",
+    "kit",
+    "ai-sdk",
+    "mastra",
+    "langgraph",
+    "runtime",
+    "managed-runtimes",
+    "codex",
+    "claude-code",
+    "openclaw"
+  ]
+}

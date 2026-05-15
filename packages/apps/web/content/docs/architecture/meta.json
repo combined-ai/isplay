@@ -1,0 +1,12 @@
+{
+  "title": "Architecture",
+  "description": "System architecture, data flow, server/store design, replay execution, experiment runner, and worker status",
+  "pages": [
+    "index",
+    "data-flow",
+    "server-and-store",
+    "replay-engine",
+    "experiment-runner",
+    "worker-and-jobs"
+  ]
+}

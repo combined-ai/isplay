@@ -1,0 +1,44 @@
+---
+title: Adapter Capabilities
+description: Capture and replay capability levels across framework adapters and managed runtimes.
+---
+
+Adapters differ because frameworks expose different hooks. Some can observe model and tool behavior. Some can block risky tools. Some can replace model or tool outputs before side effects. These differences determine the strength of replay evidence.
+
+## Capability Status
+
+| Status | Meaning |
+| --- | --- |
+| `native_full` | Runtime primitives support native replacement or safe interception. |
+| `managed_replay` | Adapter can capture and steer, but runtime limitations remain. |
+| `observability_only` | Useful trace capture without deterministic replay. |
+| `unsupported` | Public API does not expose the primitive. |
+
+## Interception Modes
+
+| Mode | Meaning |
+| --- | --- |
+| `native_replace` | Runtime lets the adapter replace model/tool output before downstream code sees it. |
+| `proxy_replace` | Adapter wraps a boundary and can substitute output. |
+| `post_result_replace` | Adapter can alter recorded output after execution; side effects may already happened. |
+| `block_only` | Adapter can prevent execution but not synthesize safe replacements. |
+| `observe_only` | Adapter can only record what happened. |
+
+## Current Adapter Shape
+
+| Integration | Capture strength | Replay caveat |
+| --- | --- | --- |
+| Adapter kit | Strong for custom code you own | Replay depends on where you wrap and what executors you provide. |
+| AI SDK | Good model/tool capture through middleware and wrappers | Streams must be drained; provider live replay needs executors. |
+| Mastra | Explicit workflow, step, model, and tool capture | No automatic global `Agent.generate` monkey patch. |
+| LangGraph | Node/state/model/stream/tool capture | Global option coverage is not the same as per-wrapper capture. |
+| Codex | Managed runtime hook ingestion | Built-in tools may not be replaceable before side effects. |
+| Claude Code | Observability-oriented capture | Model replay is unsupported; post-tool context cannot undo side effects. |
+| OpenClaw | Strongest managed runtime story | Best when runtime honors skip/replace hooks. |
+
+## Choosing An Adapter
+
+- Use a dedicated adapter when it captures the framework's native boundaries.
+- Use adapter kit when your framework has no first-party integration or you need exact control.
+- Treat managed-runtime adapters as capability-specific. Do not assume model replacement, tool replacement, and side-effect blocking are equally supported.
+- Read capability manifests before trusting replay results from a managed runtime.

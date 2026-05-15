@@ -1,0 +1,28 @@
+---
+title: Managed Runtime Example
+description: Read capability manifests before claiming replay support.
+---
+
+Managed runtimes differ from app-owned frameworks because hooks may run before execution, after execution, or only as transcript output.
+
+```ts
+import { primitive, type AdapterCapabilityManifest } from "@isplay/adapter-runtime";
+
+const capabilities: AdapterCapabilityManifest = {
+  adapterId: "example-runtime",
+  status: "managed_replay",
+  primitives: {
+    modelOutput: primitive("observe_only"),
+    toolExecution: primitive("block_only"),
+    toolResult: primitive("post_result_replace"),
+  },
+};
+```
+
+Interpretation:
+
+| Primitive | Claim |
+| --- | --- |
+| `observe_only` model output | Useful capture, not deterministic model replay. |
+| `block_only` tool execution | Side effects can be prevented, but output replacement needs another primitive. |
+| `post_result_replace` tool result | Recorded output can be changed after execution; side effects may already happened. |

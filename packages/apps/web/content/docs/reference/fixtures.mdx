@@ -1,0 +1,58 @@
+---
+title: Fixtures Reference
+description: Fixture requirements, tool fixtures, matchers, provenance, and replay resume behavior.
+---
+
+## Fixture Requirement
+
+| Field | Meaning |
+| --- | --- |
+| `projectId` | Owning project. |
+| `replayId` | Replay that paused. |
+| `branchId` | Optional branch scope. |
+| `toolName` | Tool requiring output. |
+| `argsArtifactId` | Captured divergent args payload. |
+| `argsHash` | Stable hash for matching. |
+| `reason` | Why the fixture is required. |
+| `status` | `open`, `satisfied`, or `cancelled`. |
+| `satisfiedByFixtureId` | Fixture that satisfied it. |
+
+## Tool Fixture
+
+| Field | Meaning |
+| --- | --- |
+| `projectId` | Owning project. |
+| `replayId` | Optional replay scope. |
+| `branchId` | Optional branch scope. |
+| `toolName` | Tool name. |
+| `matcher` | JSON matcher, often including `argsHash`. |
+| `outputArtifactId` | Artifact containing fixture output. |
+| `outputHash` | Stable hash of output. |
+| `schemaVersion` | Tool schema version. |
+| `implementationVersion` | Tool implementation version. |
+| `sideEffectClass` | Tool side-effect class. |
+| `provenance` | Fixture provenance. |
+| `author` | Optional author. |
+
+## Provenance Values
+
+```text
+recorded
+analyst_fixture
+ai_fixture
+simulator
+live_readonly
+live_explicit
+```
+
+## CLI Flow
+
+```bash
+npx isplay replay requirements <replayId>
+npx isplay fixtures add <replayId> \
+  --tool <toolName> \
+  --matcher '{"argsHash":"..."}' \
+  --output '{"ok":true}' \
+  --provenance analyst_fixture
+npx isplay replay resume <replayId>
+```

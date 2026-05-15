@@ -1,0 +1,20 @@
+{
+  "title": "Concepts",
+  "description": "The mental model behind isplay capture, replay, fixtures, experiments, and evidence reports",
+  "pages": [
+    "index",
+    "object-model",
+    "capture-model",
+    "event-streams",
+    "context-inventory",
+    "checkpoints",
+    "branches-and-interventions",
+    "replay-policies",
+    "fixtures-and-provenance",
+    "experiments-effects-statistics",
+    "evidence-validity-reporting",
+    "adapter-capabilities",
+    "storage-model",
+    "schema-vs-executor-support"
+  ]
+}

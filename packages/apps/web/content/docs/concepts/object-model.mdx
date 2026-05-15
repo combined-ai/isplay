@@ -1,0 +1,54 @@
+---
+title: Object Model
+description: The durable records isplay uses to represent projects, runs, traces, branches, replay, experiments, and analysis.
+---
+
+The object model is the contract between capture code, the server, replay, experiments, adapters, and analyst agents. Most records are Zod schemas in `@isplay/core` and are persisted through the API and Postgres store.
+
+<TypeTable
+  type={{
+    project: { type: "root boundary", description: "Owns runs, artifacts, branches, replays, fixtures, experiments, analyses, and catalog views." },
+    run: { type: "captured execution", description: "One agent execution with status, start/end time, metadata, ordered events, model calls, tool records, checkpoints, and context inventory." },
+    event: { type: "ordered evidence", description: "Sequenced record such as run.started, model_call.finished, tool.finished, checkpoint.created, fixture.required, or a custom framework event." },
+    artifact: { type: "payload file", description: "JSON payload stored in the artifact root and referenced from records by artifact ID, hash, size, MIME type, and redaction state." },
+    modelCall: { type: "LLM boundary", description: "Provider, model, operation, settings, request artifact, response artifact, usage, logprobs, status, and error." },
+    toolProposal: { type: "model intent", description: "The model's proposed tool call: call ID, name, args artifact/hash, schema version, and metadata." },
+    toolExecution: { type: "runtime action", description: "The actual tool run: args/result artifacts, hashes, side-effect class, status, timing, and error." },
+    checkpoint: { type: "branch point", description: "Named state snapshot with hash, schema, code version, package versions, and optional parent event." },
+    branch: { type: "hypothesis fork", description: "Base run plus checkpoint plus replay policy plus one or more interventions." },
+    intervention: { type: "controlled change", description: "A patch, mask, substitution, config change, policy override, error injection, or checkpoint resume target." },
+    replay: { type: "comparison run", description: "Applies a branch and policy to a base run, then produces events, requirements, diffs, metrics, comparability, and effects." },
+    fixture: { type: "tool output evidence", description: "Recorded, analyst, AI, simulator, live-readonly, or live-explicit output used to satisfy a divergent tool requirement." },
+    experiment: { type: "batch test", description: "Hypotheses, arms, trial plans, validity gates, replays, requirements, statistics, and ranked effects." },
+    analysisRun: { type: "report artifact", description: "Persisted summary with evidence nodes, evidence edges, validity labels, and validity metrics." }
+  }}
+/>
+
+## Ownership Graph
+
+<Steps>
+  <Step>A project owns all evidence for one app, service, customer boundary, or investigation boundary.</Step>
+  <Step>A run owns the observed execution trace: events, model calls, tool proposals, tool executions, checkpoints, artifacts, and context inventory.</Step>
+  <Step>A branch belongs to a base run and one checkpoint. It does not copy all records; it describes the controlled change to apply during replay.</Step>
+  <Step>A replay belongs to a base run and optionally a branch or trial. It records whether the comparison completed, paused, or failed.</Step>
+  <Step>An experiment owns hypotheses and arms. Arms usually materialize branches, and trials produce replays.</Step>
+  <Step>An analysis run references the base run and optional replay or experiment evidence, then stores the final evidence-bounded report data.</Step>
+</Steps>
+
+## Why Model Intent And Tool Execution Are Separate
+
+Agents often propose tool calls before a runtime executes them. isplay records both sides because bugs can occur in either place:
+
+| Failure location | Evidence record |
+| --- | --- |
+| The model chose the wrong tool or wrong args | `ToolProposal` and `tool.proposed` |
+| The runtime rewrote args or selected another implementation | Difference between `ToolProposal` and `ToolExecution` |
+| The tool returned bad data | `ToolExecution.resultArtifactId`, `resultHash`, fixture requirements, and replay diffs |
+| The tool mutated the outside world | `sideEffectClass`, replay policy, and fixture provenance |
+
+## Practical Advice
+
+- Treat IDs as durable. Store `projectId`, `runId`, `checkpointId`, `branchId`, `replayId`, and `experimentId` from JSON output.
+- Use project boundaries deliberately. Mixing unrelated services in one project makes catalog and context search noisy.
+- Keep model and tool artifacts available. Replays and reports are much weaker when only event summaries remain.
+- Put important state into checkpoints, not only events. Branching needs a restartable state snapshot.

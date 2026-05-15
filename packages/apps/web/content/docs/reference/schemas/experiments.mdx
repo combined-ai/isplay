@@ -1,0 +1,50 @@
+---
+title: Experiment Schemas
+description: Checkpoint selectors, patch operations, intervention specs, trial plans, validity gates, hypotheses, and arms.
+---
+
+## CheckpointSelector
+
+```json
+{ "kind": "first" }
+{ "kind": "latest" }
+{ "kind": "name", "value": "before-final" }
+```
+
+## PatchOperation
+
+Patch operations support JSON Patch operations plus `mask_span` and `replace_text`.
+
+## InterventionSpec
+
+| Field | Type |
+| --- | --- |
+| `kind` | intervention kind |
+| `target` | refs such as `refId`, `eventId`, `eventType`, `toolName`, `modelCallId`, `artifactId`, `jsonPointer` |
+| `operations` | patch operation array |
+| `patch` | JSON payload |
+| `expectedBaseHash` | optional stale-target guard |
+| `description` | optional string |
+
+## TrialPlan
+
+| Field | Values |
+| --- | --- |
+| `repetitions` | positive integer, default `1` |
+| `concurrency` | positive integer, default `1` |
+| `maxReplays` | positive integer, default `20` |
+| `seedPolicy` | `none`, `fixed`, `indexed` |
+| `stopRule` | `none`, `first_supported`, `first_invalid` |
+
+## ValidityGate
+
+```text
+minimum_trials
+max_fixture_dependency_rate
+max_non_comparable_rate
+requires_effect_size
+```
+
+## Current Runner Note
+
+The schema includes concurrency and stop-rule fields. The current server runner is synchronous and serial.

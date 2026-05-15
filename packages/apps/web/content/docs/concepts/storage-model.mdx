@@ -1,0 +1,41 @@
+---
+title: Storage Model
+description: Postgres tables, JSONB projections, artifact files, hashes, migrations, and catalog reconstruction.
+---
+
+The current store uses Postgres for records and projections, plus a filesystem artifact root for JSON payloads.
+
+## Tables
+
+| Table | Purpose |
+| --- | --- |
+| `projects` | Project records and metadata. |
+| `runs` | Run records, status, timing, agent ID, and metadata. |
+| `events` | Ordered event stream with `(run_id, seq)` uniqueness. |
+| `artifacts` | Artifact metadata and object keys. |
+| `projections` | JSONB records for higher-level objects: model calls, tool executions, branches, replays, experiments, context, and analysis records. |
+
+## Artifacts
+
+Artifacts store payload files under `ISPLAY_ARTIFACTS_DIR` or `.isplay/artifacts`. The database stores:
+
+- `objectKey`
+- SHA-256 hash
+- byte size
+- MIME type
+- compression marker
+- redaction state
+- metadata
+
+Artifact paths are validated to prevent traversal outside the artifact root.
+
+## Projections
+
+Projections let the store persist many domain records without adding a table for every schema while the package is still evolving. They are JSONB records keyed by projection type and ID. Context inventory, replay outputs, experiment records, and analysis outputs are reconstructed from events and projections.
+
+## Operational Implications
+
+- Back up Postgres and the artifact root together. One without the other is incomplete evidence.
+- Treat artifacts as sensitive even after redaction. Redaction state is metadata, not a proof that no private content remains.
+- Keep event streams append-only where possible. Patching run status is normal; rewriting evidence weakens trace integrity.
+- Use durable artifact storage outside local development.

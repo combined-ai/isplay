@@ -1,0 +1,80 @@
+---
+title: Mastra Claims Demo
+description: Run the bundled Mastra claims example and use it as a complete capture and replay playground.
+---
+
+The repository includes a claims-agent example under `resources/examples/mastra-claims-agent`. It is the best local demo because it exercises domain data, tools, capture, and an investigation script.
+
+## 1. Start isplay
+
+```bash
+npx isplay start
+export ISPLAY_API_URL=http://127.0.0.1:7373
+npx isplay projects create --name "Mastra Claims Demo"
+export ISPLAY_PROJECT_ID="<project id>"
+```
+
+## 2. Run The Demo
+
+From the repository root:
+
+```bash
+npm run demo:mastra-claims
+```
+
+The demo records a claims workflow run and prints IDs needed for inspection.
+
+## 3. Inspect The Captured Run
+
+```bash
+npx isplay runs list --project "$ISPLAY_PROJECT_ID"
+npx isplay discover run <runId>
+npx isplay runs context <runId>
+npx isplay runs checkpoints <runId>
+```
+
+Look for:
+
+- Mastra step events.
+- Model call projections.
+- Tool proposal and execution records.
+- Domain state checkpoints.
+- Context inventory that explains the decision.
+
+## 4. Try One Hypothesis
+
+Choose one prompt clause, retrieval item, or state field from the context inventory. Then create one branch and replay it:
+
+```bash
+npx isplay branch create \
+  --from <runId> \
+  --checkpoint <checkpointId> \
+  --project "$ISPLAY_PROJECT_ID" \
+  --name "demo-hypothesis"
+
+npx isplay branch intervene <branchId> \
+  --project "$ISPLAY_PROJECT_ID" \
+  --kind prompt_clause_mask \
+  --target <context-or-event-id> \
+  --description "Mask one policy clause"
+
+npx isplay replay <runId> \
+  --project "$ISPLAY_PROJECT_ID" \
+  --branch <branchId> \
+  --model-policy recorded-only \
+  --tool-policy pause-for-fixture
+```
+
+## 5. Use It As A Template
+
+The example files show the pieces most real apps need:
+
+| File | Use |
+| --- | --- |
+| `src/agent.ts` | Agent workflow and model/tool boundary. |
+| `src/tools.ts` | Tool implementation and tool capture concerns. |
+| `src/data.ts` | Domain fixture data. |
+| `src/isplay-lab.ts` | isplay setup and investigation helpers. |
+| `src/run.ts` | Demo entrypoint. |
+
+When porting the pattern, keep checkpoint names and context paths stable. That is what makes later replay and experiment specs readable.

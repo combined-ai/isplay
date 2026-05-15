@@ -1,0 +1,58 @@
+---
+title: Evidence, Validity, And Reporting
+description: Evidence nodes, evidence edges, validity labels, validity scoring, and bounded RCA wording.
+---
+
+isplay reports are designed to be bounded: they should state what was observed, what was changed under replay, what evidence supports the conclusion, and what caveats remain.
+
+## Validity Labels
+
+| Label | Meaning |
+| --- | --- |
+| `confirmed_by_replay` | Comparable replay evidence exists without a stronger detected caveat. |
+| `sensitive_to_fixture` | The conclusion depends on fixture output. |
+| `model_nondeterministic` | Repeated attempts varied under the same policy. |
+| `diverged_but_comparable` | The traces diverged but downstream comparison is still useful. |
+| `non_comparable` | Branch drift broke meaningful comparison. |
+| `unsupported` | Evidence is missing, incomplete, or not replay-backed. |
+
+## Evidence Graph
+
+Analysis outputs can include evidence nodes and edges. This lets a report cite not just a final answer but the evidence chain behind it.
+
+| Evidence node | Examples |
+| --- | --- |
+| Prompt clause | A policy instruction that changed behavior when masked. |
+| Retrieval | A source chunk that introduced wrong facts. |
+| Memory | Persistent state that affected the decision. |
+| State | Checkpoint field changed by an intervention. |
+| Tool fixture/schema | Tool output or tool contract that affected replay. |
+| Model config | Temperature or provider setting. |
+| Metric delta | Difference in replay metrics. |
+| Intervention | The controlled change being tested. |
+
+Evidence edge relations include `supports`, `contradicts`, `depends_on`, `changed_by`, `first_diverged_at`, and `sensitive_to`.
+
+## Evidence Strength Ordering
+
+1. Captured base trace facts are strongest for what happened.
+2. Recorded-only replay is strongest for what changed under a controlled transformation.
+3. Recorded fixtures are stronger than analyst, simulator, AI, or live fixtures.
+4. Repeated comparable trials are stronger than one replay.
+5. Fixture-sensitive or non-comparable findings must stay conditional.
+6. Observability-only managed runtime traces are useful, but do not imply deterministic replay.
+
+## Report Wording
+
+Use precise verbs:
+
+| Say | When |
+| --- | --- |
+| `observed` | Base run fact. |
+| `under replay` | Controlled branch result. |
+| `under fixture` | Result depends on supplied fixture. |
+| `suggests` | Evidence is useful but incomplete. |
+| `unsupported` | No replay-backed evidence supports the claim. |
+| `non-comparable` | Branch drift prevents a valid comparison. |
+
+Avoid words like "proved" or "guaranteed" unless an external formal proof actually exists.

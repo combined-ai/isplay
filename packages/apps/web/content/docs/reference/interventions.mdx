@@ -1,0 +1,54 @@
+---
+title: Interventions Reference
+description: Intervention kinds, target selectors, patch shapes, and stale-target guards.
+---
+
+## Kinds
+
+```text
+context_mask
+message_patch
+prompt_patch
+prompt_clause_mask
+memory_mask
+state_mask
+state_patch
+tool_args_patch
+tool_mask
+tool_schema_edit
+tool_schema_patch
+tool_result_substitution
+retrieval_substitution
+model_config_patch
+model_config_change
+policy_override
+input_patch
+human_decision_substitution
+latency_or_error_injection
+checkpoint_resume
+```
+
+## Intervention Record
+
+| Field | Type |
+| --- | --- |
+| `projectId` | string |
+| `branchId` | string |
+| `kind` | intervention kind |
+| `targetId` | optional string |
+| `description` | optional string |
+| `patch` | optional JSON |
+| `metadata` | object |
+
+## Experiment Intervention Spec
+
+Experiment inputs can target by `refId`, `eventId`, `eventType`, `toolName`, `modelCallId`, `artifactId`, or `jsonPointer`, depending on the intervention.
+
+Patch operations support JSON Patch-style operations plus:
+
+| Operation | Purpose |
+| --- | --- |
+| `replace_text` | Replace matching text in a string payload. |
+| `mask_span` | Mask a span in text-like content. |
+
+Use `expectedBaseHash` to prevent stale-target patches when a context item or artifact changed after the spec was written.

@@ -1,0 +1,55 @@
+---
+title: Event Streams
+description: Ordered run evidence, event families, custom events, sequence behavior, and append semantics.
+---
+
+Every run has an ordered event stream. Events are the chronological spine that connects higher-level records: a `ModelCall` projection is useful, but the `model_call.started` and `model_call.finished` events place that call in time.
+
+## Event Shape
+
+Each event has:
+
+| Field | Meaning |
+| --- | --- |
+| `id` | Durable event ID. |
+| `projectId` | Owning project. |
+| `runId` | Owning run. |
+| `seq` | Monotonic non-negative sequence number inside the run. |
+| `type` | Known event type or custom framework event string. |
+| `refId` | Optional ID of the record the event is about. |
+| `parentEventId` | Optional parent event for nested or derived events. |
+| `occurredAt` | ISO timestamp from the producer. |
+| `data` | JSON payload. |
+| `metadata` | Extra structured metadata. |
+
+## Known Event Families
+
+| Family | Events | Use |
+| --- | --- | --- |
+| Run lifecycle | `run.started`, `run.finished` | Establishes the execution boundary. |
+| Model lifecycle | `model_call.started`, `model_call.finished` | Captures model request/response timing and projection IDs. |
+| Tool lifecycle | `tool.proposed`, `tool.started`, `tool.finished` | Separates model intent from runtime execution. |
+| State | `checkpoint.created` | Marks a branchable state snapshot. |
+| Artifacts | `artifact.created` | Records payload creation when useful for trace reading. |
+| Replay and analysis | `branch.created`, `intervention.created`, `replay.started`, `replay.paused`, `replay.finished`, `analysis.created` | Links counterfactual work back to the baseline. |
+| Fixtures | `fixture.required`, `fixture.created` | Keeps missing divergent tool outputs explicit. |
+
+The schema accepts arbitrary strings, so adapters can emit framework events such as `mastra.step.finished`, `langgraph.node.completed`, `codex.hook.PreToolUse`, or `openclaw.llm_input`.
+
+## Sequence Semantics
+
+The SDK uses async run context to allocate event sequence numbers during a run. The Postgres store enforces uniqueness on `(run_id, seq)` and treats duplicate inserts as ignored rows.
+
+<Callout type="warn" title="Duplicate sequence numbers">
+Duplicate `(runId, seq)` inserts make event appends idempotent, but a broken producer that reuses sequence numbers can silently lose later events. If trace order looks wrong, inspect event sequences first.
+</Callout>
+
+## What Belongs In `data`
+
+Use event `data` for the concise thing an analyst needs in sequence. Put large payloads in artifacts and reference artifact IDs from the event or projection. A good event payload is:
+
+- JSON-serializable.
+- Redacted before it leaves the app.
+- Small enough to scan.
+- Linked to a durable projection with `refId` when possible.
+- Rich enough to understand the transition without fetching every artifact.

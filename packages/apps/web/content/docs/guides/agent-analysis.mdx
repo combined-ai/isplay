@@ -1,0 +1,89 @@
+---
+title: Agent Analysis
+description: Use the bundled isplay-analysis skill to let an AI analyst discover traces, form hypotheses, run replays, resolve fixtures, and write bounded RCA reports.
+---
+
+The `isplay-analysis` skill turns the CLI and API into a repeatable analyst workflow. It is useful when you want an agent to investigate a captured run without skipping trace discovery or overclaiming causality.
+
+## Install The Skill
+
+```bash
+npx skills add isplay/isplay --skill isplay-analysis
+```
+
+The Skills CLI will detect supported agents and ask where to install the skill. Restart the agent app after installation so `$isplay-analysis` is discoverable.
+
+## Prompt Template
+
+```text
+Use $isplay-analysis. Analyze run <runId> in project <projectId>. Discover the run catalog and context inventory first. Build a factual baseline narrative, form narrow hypotheses, run recorded-only model replay with pause-for-fixture tool policy, resolve fixture requirements only when safe and explicitly labeled, then return an RCA report with diffs, effects, statistics, fixture provenance, comparability, validity labels, and next experiments.
+```
+
+If the run ID is unknown:
+
+```text
+Use $isplay-analysis. Find my latest captured run for project <projectId>, then analyze it with the default evidence-bounded workflow.
+```
+
+## What The Skill Loads
+
+<Files>
+  <Folder name="resources" defaultOpen>
+    <Folder name="skills" defaultOpen>
+      <Folder name="isplay-analysis" defaultOpen>
+        <File name="SKILL.md" />
+        <Folder name="references" defaultOpen>
+          <File name="platform-map.md" />
+          <File name="tutorial.md" />
+          <File name="hypothesis-playbook.md" />
+          <File name="trace-reading.md" />
+          <File name="recipes.md" />
+          <File name="report-template.md" />
+        </Folder>
+      </Folder>
+    </Folder>
+  </Folder>
+</Files>
+
+## Agent Duties
+
+<Steps>
+  <Step>Establish `ISPLAY_API_URL`, `ISPLAY_PROJECT_ID`, and `runId`. Ask one concise question only if those cannot be inferred.</Step>
+  <Step>Run `discover run` and fetch context inventory before forming explanations.</Step>
+  <Step>Build a baseline narrative from observed facts: prompts, settings, tools, retrieval, memory, state, tool args/results, checkpoints, and final behavior.</Step>
+  <Step>Separate observed facts from candidate causes.</Step>
+  <Step>Prioritize hypotheses by proximity to divergence, isolation, fixture burden, actionability, and safety.</Step>
+  <Step>Create branches or a hypothesis batch with one primary intervention per hypothesis.</Step>
+  <Step>Resolve fixture requirements with recorded or analyst fixtures only when provenance is clear; otherwise ask the user.</Step>
+  <Step>Read results, statistics, effects, diffs, requirements, and validity labels.</Step>
+  <Step>Write a bounded report that states what changed, under which policy and fixture assumptions, and what remains uncertain.</Step>
+</Steps>
+
+## Good Agent Outputs
+
+The report should include:
+
+| Section | Contents |
+| --- | --- |
+| Executive finding | Strongest tested explanation, status, and validity labels. |
+| Scope | Project, run, checkpoint, experiment/replay IDs, policies, trial plan. |
+| Baseline | Factual trace narrative before hypotheses. |
+| Hypotheses | Statements, targets, interventions, expected effects, trial counts. |
+| Ranked effects | Effect titles, scores, status, evidence refs, recommended actions. |
+| Diffs | First divergence, changed descendants, tool sequence distance, tool args/output changes. |
+| Fixture notes | Requirements, fixtures, provenance, dependency rate, sensitivity. |
+| Residual uncertainty | Missing context, non-comparability, nondeterminism, low-N risks. |
+| Next experiments | Smallest follow-ups that would reduce uncertainty. |
+
+## Guardrails For Agents
+
+- Do not state root cause certainty unless replay evidence actually supports the wording.
+- Do not run live tools or models unless the user explicitly approves and policy allows it.
+- Do not hide fixture dependence in a footnote. Put it in the finding.
+- Do not patch broad prompt sections when one clause or tool schema can be targeted.
+- Use expected base hashes when patching observed context through experiment specs.
+- If context inventory is sparse, report the missing evidence instead of guessing.
+
+<Callout type="success" title="Best use">
+Give the agent a run ID and the outcome you want explained. Let it drive discovery and experiments, but require final claims to cite replay IDs, effect IDs, fixture provenance, and validity labels.
+</Callout>

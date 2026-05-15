@@ -1,0 +1,38 @@
+---
+title: Errors Reference
+description: API error shape, HTTP status meanings, and API client error behavior.
+---
+
+## API Error Shape
+
+```json
+{
+  "error": "Invalid request",
+  "code": "invalid_request",
+  "message": "Invalid request",
+  "details": {},
+  "requestId": "uuid-or-x-request-id",
+  "retryable": false,
+  "recoverable": true
+}
+```
+
+## Status Codes
+
+| Status | Code | Meaning |
+| --- | --- | --- |
+| `400` | `invalid_request` | Validation failed, IDs differ, unsafe path, or stale target hash. |
+| `404` | `not_found` | Requested resource does not exist. |
+| `500` | `internal_error` | Unexpected server error. |
+
+## API Client
+
+`IsplayApiClient` throws `IsplayApiError` for failed responses. Inspect `status` and `body` before deciding whether to retry.
+
+## Common Validation Errors
+
+- Body project/run/branch/replay ID differs from path ID.
+- JSON body is missing a required schema field.
+- JSON patch target is stale or missing.
+- Artifact object key attempts unsafe path traversal.
+- CLI input is YAML or invalid JSON.

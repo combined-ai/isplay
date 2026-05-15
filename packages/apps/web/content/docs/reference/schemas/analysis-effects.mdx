@@ -1,0 +1,56 @@
+---
+title: Analysis And Effects Schemas
+description: Analysis runs, evidence nodes, evidence edges, effect candidates, experiment statistics, statuses, and labels.
+---
+
+## Records
+
+| Schema | Purpose |
+| --- | --- |
+| `AnalysisRun` | Persisted summary and validity labels. |
+| `EvidenceNode` | Prompt clause, retrieval, memory, state, tool fixture/schema, model config, token signal, intervention, or metric delta evidence. |
+| `EvidenceEdge` | Relation between evidence nodes. |
+| `EffectCandidate` | Ranked effect with status, score, labels, confidence, evidence refs, and next actions. |
+| `ExperimentStatistics` | Counts, rates, confidence intervals, and metadata. |
+
+## Evidence Edge Relations
+
+```text
+supports
+contradicts
+depends_on
+changed_by
+first_diverged_at
+sensitive_to
+```
+
+## Effect Statuses
+
+```text
+supported
+not_supported
+inconclusive
+invalid
+```
+
+## Effect Types
+
+```text
+tool_args_changed
+output_changed
+fixture_sensitive
+early_divergence
+non_comparable
+no_effect
+```
+
+## Validity Labels
+
+```text
+confirmed_by_replay
+sensitive_to_fixture
+model_nondeterministic
+diverged_but_comparable
+non_comparable
+unsupported
+```

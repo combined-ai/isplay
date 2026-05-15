@@ -1,0 +1,66 @@
+---
+title: Replay Policies
+description: Model, tool, drift, budget, and temperature choices that define the strength and safety of replay evidence.
+---
+
+Replay policy tells isplay what is allowed to happen when a branch is compared to the base run. Policy is evidence metadata. A report that omits policy is incomplete.
+
+## Policy Shape
+
+```json
+{
+  "model": "recorded-only",
+  "tool": "pause-for-fixture",
+  "drift": "continue_to_terminal",
+  "maxSteps": 100,
+  "temperatureOverride": 0
+}
+```
+
+## Model Policies
+
+| Policy | Meaning | Evidence strength |
+| --- | --- | --- |
+| `recorded-only` | Copy captured model outputs. | Strongest local default for controlled event transformations. |
+| `determinism-probe` | Repeat execution to measure variance. | Useful when an executor is wired; schema-supported. |
+| `pinned-live` | Re-run with a pinned live model/config. | Can test current provider behavior, but introduces drift. |
+| `compatible-live` | Re-run with a compatible live model. | Weaker for RCA because model identity may drift. |
+| `provider-fixture` | Use provider-supplied fixture output. | Depends on provider fixture quality. |
+| `blocked` | Do not allow model execution. | Useful safety policy. |
+
+The current local replay engine supports recorded model behavior and fails fast on live policies unless an explicit executor is provided.
+
+## Tool Policies
+
+| Policy | Meaning | Advice |
+| --- | --- | --- |
+| `recorded-only` | Only use captured tool outputs. | Good when no branch changes tool args or tool order. |
+| `pause-for-fixture` | Pause when a divergent output is missing. | Recommended RCA default. |
+| `analyst-fixture` | Allow analyst-supplied outputs. | Keep provenance and author visible. |
+| `simulated` | Allow simulator outputs. | Use for declared simulators only. |
+| `live-readonly` | Allow live read-only tools. | Requires explicit safe executor. |
+| `live-explicit` | Allow live side-effecting tools with explicit approval. | Treat as high risk. |
+| `blocked` | Block tools. | Useful for safety tests and negative controls. |
+
+## Drift Policies
+
+| Drift | Use when |
+| --- | --- |
+| `stop_on_first_divergence` | You only need to isolate the earliest changed event. |
+| `continue_to_terminal` | You need downstream behavior, metrics, and final output comparison. |
+| `continue_until_budget` | You want bounded continuation for long traces. Current local support is limited by `maxSteps`. |
+
+## Recommended Defaults
+
+For root-cause analysis:
+
+```json
+{
+  "model": "recorded-only",
+  "tool": "pause-for-fixture",
+  "drift": "continue_to_terminal",
+  "maxSteps": 100
+}
+```
+
+This default avoids unbounded live calls, keeps missing divergent tool output explicit, and still allows downstream comparison when fixtures are available.

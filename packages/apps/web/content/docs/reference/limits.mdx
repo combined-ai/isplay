@@ -1,0 +1,64 @@
+---
+title: Current Limits
+description: Honest reference for implemented behavior, caveats, stubs, and places where schemas are ahead of runtime execution.
+---
+
+This page exists so docs do not overpromise. Some schemas are intentionally broader than the current local execution engine.
+
+## Runtime And Replay Limits
+
+| Area | Current state |
+| --- | --- |
+| Live model replay | `pinned-live` and `compatible-live` exist in schemas but local replay errors without explicit model executors. |
+| Live tool replay | `live-readonly` and `live-explicit` exist in schemas but local replay errors without explicit tool executors. |
+| Native framework replay | Adapters capture evidence; replaying through a framework executor requires runtime-specific support. |
+| Managed runtime side effects | Codex and Claude Code can block/defer or add context, but post-tool replacement cannot undo side effects. |
+| Stream capture | AI SDK and LangGraph model calls finish when streams are consumed. Undrained streams leave incomplete capture. |
+
+## Experiment Limits
+
+| Area | Current state |
+| --- | --- |
+| `trialPlan.concurrency` | Parsed, but current runner is serial. |
+| `trialPlan.maxReplays` | Present in schema; runner mainly uses repetitions. |
+| `trialPlan.stopRule` | Parsed, not meaningfully enforced. |
+| `RunExperiment.wait` | Parsed, but route runs synchronously. |
+| CLI `--no-wait` | Parsed, but server still returns after synchronous execution. |
+| `arm-comparison` | Returns trial matrix data today. |
+
+## Worker Limits
+
+`@isplay/worker` registers task handlers for replay, experiments, diff, metrics, and export, but the handlers currently log payloads. The server route layer performs active replay and experiment work synchronously.
+
+## Redaction Limits
+
+| Action | Current state |
+| --- | --- |
+| `hash` | Emits `[HASHED]`, not a digest. |
+| `encrypt` | Emits `[REDACTED]`; no encryption backend. |
+| `artifact_only` | Masks inline value; does not implement a separate artifact-only access policy. |
+| `metadata_only` | Masks inline value; metadata semantics depend on caller metadata. |
+
+## API And Client Caveats
+
+- `POST /v1/runs/{id}/events:batch` returns `200` with `{ inserted }`.
+- Duplicate event sequence inserts are ignored by the store because of `ON CONFLICT DO NOTHING`.
+- `GET /v1/replays/{id}/events` falls back to base run events when replay events have not been stored.
+- `POST /v1/effects:rank` returns stored effects from experiment or replay IDs, sliced by limit, rather than reranking arbitrary diff payloads in the route.
+- `jobs events` returns simple synthetic SSE events in the current server.
+
+## Adapter Caveats
+
+| Adapter | Caveat |
+| --- | --- |
+| Adapter kit | Strength depends entirely on where you wire it. |
+| AI SDK | Stream completion requires consumption; tool metadata fields use `__isplaySideEffectClass`, `__isplaySchemaVersion`, and `__isplayImplementationVersion`. |
+| Mastra | Explicit helper adapter, not transparent `Agent.generate` middleware. |
+| LangGraph | `LangGraphAdapterOptions.checkpointState` is declared but pass checkpoint options directly to `wrapNode`. |
+| Codex | Built-in tool injection is not universally pre-execution. JSONL ingestion maps known item types only. |
+| Claude Code | Model replay is unsupported; model capture is observability-oriented. |
+| OpenClaw | Native synthetic fixture replay only works when the runtime honors before-tool synthetic outputs. |
+
+## Documentation Rule
+
+When describing a feature that is schema-supported but not executor-supported, say "modeled" or "schema-supported", not "available". Use "current local engine" when documenting behavior in this repository.

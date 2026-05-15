@@ -1,0 +1,37 @@
+---
+title: Storage And Artifacts
+description: How records, projections, artifacts, backups, and retention should be handled.
+---
+
+isplay stores structured records in Postgres and payloads in an artifact directory.
+
+## Tables
+
+| Table | Purpose |
+| --- | --- |
+| `projects` | Project records and metadata. |
+| `runs` | Run records and status. |
+| `events` | Ordered event stream with `(run_id, seq)` uniqueness. |
+| `artifacts` | Artifact metadata. |
+| `projections` | JSONB records for higher-level objects and derived outputs. |
+
+## Artifact Root
+
+Set a durable artifact root outside disposable containers:
+
+```bash
+export ISPLAY_ARTIFACTS_DIR=/var/lib/isplay/artifacts
+```
+
+Artifacts are JSON payload files. The database stores object key, SHA-256, size, MIME type, compression marker, redaction state, and metadata.
+
+## Backup Rule
+
+Back up Postgres and artifacts together. A database backup without artifacts loses payload evidence. An artifact backup without Postgres loses IDs, hashes, and relationships.
+
+## Retention Advice
+
+- Decide retention by project boundary.
+- Keep shorter retention for raw or weakly redacted artifacts.
+- Keep analysis outputs and aggregate metrics longer when policy permits.
+- Treat deletion as evidence deletion; avoid partial deletion that leaves misleading records.

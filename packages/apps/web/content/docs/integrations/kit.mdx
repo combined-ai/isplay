@@ -1,0 +1,130 @@
+---
+title: Adapter Kit
+description: Shared capture primitives for custom frameworks, direct SDK instrumentation, context annotations, model calls, tool wrappers, and checkpoints.
+---
+
+`@isplay/adapter-kit` is the lowest-level adapter package. Use it when you own the agent framework or when no prebuilt adapter fits.
+
+## Install for Adapter Kit
+
+```bash
+npm install isplay @isplay/sdk @isplay/adapter-kit
+```
+
+Initialize the SDK once:
+
+```ts
+import { init } from "@isplay/sdk";
+import { createAdapterKit } from "@isplay/adapter-kit";
+
+const client = init({
+  projectId: process.env.ISPLAY_PROJECT_ID!,
+  baseUrl: process.env.ISPLAY_API_URL,
+});
+
+const kit = createAdapterKit(client);
+```
+
+## Exports
+
+| Export | Purpose |
+| --- | --- |
+| `createAdapterKit(client?)` | Returns annotations, model capture, framework event capture, tool wrapper, and checkpoint helper. |
+| `annotateContext(kind, path, value, options?)` | Build a context annotation spec. |
+| `systemPrompt`, `developerPrompt`, `userMessage`, `assistantMessage` | Mark prompt values while preserving their runtime value. |
+| `promptClause`, `retrievalChunk`, `memoryItem`, `stateField`, `toolSchema` | Mark common context targets. |
+| `valueOf(value)` | Unwrap an annotated value before passing it to a framework. |
+| `annotationsFrom(input)` | Recursively collect marked annotations. |
+| `recordAnnotations(client, input)` | Emit all marked annotations. |
+| `captureModelCall(client, input, call)` | Start/finish model capture around an arbitrary async call. |
+| `recordFrameworkEvent(client, event)` | Record framework events as `<framework>.<type>`. |
+| `wrapTool(client, options, handler)` | Capture tool proposal/execution/output/error around a handler. |
+
+## Annotated Values
+
+```ts
+const system = kit.annotations.systemPrompt(
+  "Prefer policy-grounded answers.",
+  "prompt.system"
+);
+
+const clause = kit.annotations.promptClause(
+  "Escalate duplicate receipt signals.",
+  "prompt.system.escalation"
+);
+
+await kit.annotations.record({ system, clause });
+
+const prompt = `${kit.annotations.valueOf(system)}\n${kit.annotations.valueOf(clause)}`;
+```
+
+Annotations are marker objects. Use `valueOf()` when passing values to APIs that expect plain strings or objects.
+
+## Model Capture
+
+```ts
+const output = await kit.captureModelCall(
+  {
+    provider: "openai",
+    model: "gpt-5.4-mini",
+    operation: "generate",
+    params: { prompt, tools },
+    settings: { temperature: 0.2 },
+  },
+  async () => model.generate(prompt)
+);
+```
+
+`captureModelCall` starts a model record, runs your function, extracts common usage and logprob shapes, finishes the model record, and records errors if thrown.
+
+## Tool Wrapping
+
+```ts
+const lookupClaim = kit.wrapTool(
+  {
+    name: "lookup_claim",
+    recordProposal: true,
+    sideEffectClass: "read",
+    schemaVersion: "1",
+    implementationVersion: "2026-05-24",
+  },
+  async (args: { claimId: string }) => {
+    return database.claims.get(args.claimId);
+  }
+);
+```
+
+`wrapTool` captures args and output artifacts, stable hashes, schema/implementation metadata, and errors. Use `recordProposal: true` when the framework does not separately expose model tool proposals.
+
+## Framework Events
+
+```ts
+await kit.recordFrameworkEvent({
+  framework: "my-agent",
+  type: "planner.completed",
+  payload: { selectedTool: "lookup_claim" },
+});
+```
+
+Framework events become custom run events such as `my-agent.planner.completed`.
+
+## Checkpoints
+
+```ts
+await kit.checkpoint("before-final-decision", state, {
+  schemaName: "claims.workflow.state",
+  schemaVersion: "3",
+  metadata: { phase: "decision" },
+});
+```
+
+Checkpoint before decisions, side-effecting tools, and final responses. The replay and experiment workflows depend on usable checkpoints.
+
+## Best Practices
+
+- Use stable, semantic context paths.
+- Annotate prompt clauses separately when they may be tested independently.
+- Capture tool schemas and descriptions as `tool_schema` context.
+- Provide side-effect class explicitly for every tool.
+- Capture state with `stateField()` and checkpoints when state affects downstream behavior.
+- Keep model/tool capture inside `client.withRun()`.

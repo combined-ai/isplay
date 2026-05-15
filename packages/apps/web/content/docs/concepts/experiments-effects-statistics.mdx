@@ -1,0 +1,56 @@
+---
+title: Experiments, Effects, And Statistics
+description: Hypothesis batches, arms, trials, statistics, validity gates, and ranked effects.
+---
+
+Experiments let you test several hypotheses or repeat one hypothesis across trials. They are built on the same primitives as manual replay: checkpoints, branches, interventions, policies, fixture requirements, diffs, metrics, and effects.
+
+## Experiment Vocabulary
+
+| Term | Meaning |
+| --- | --- |
+| Hypothesis | A claim worth testing, usually mapped to one or more interventions. |
+| Arm | One concrete branch/replay configuration inside an experiment. |
+| Trial | One replay attempt for an arm. |
+| Trial plan | Repetitions, concurrency, max replays, seed policy, and stop rule. |
+| Validity gate | Rule that determines whether evidence is strong enough to label. |
+| Statistics | Counts, rates, confidence intervals, and effect summaries. |
+| Effect candidate | Ranked possible explanation with status, score, labels, evidence refs, and next actions. |
+
+## What The Current Runner Does
+
+The server can create experiments, materialize branches and arms, run replays, collect requirements, compute trial matrices, summarize statistics, and rank effects. The current implementation is synchronous and serial even though schemas include fields such as `concurrency`, `maxReplays`, and `stopRule`.
+
+<Callout type="warn" title="Low-N discipline">
+One replay can support a useful debugging lead. It is not a statistical claim. Repeat trials, inspect fixture dependency, and report validity labels before treating an effect as supported.
+</Callout>
+
+## Effect Statuses
+
+| Status | Meaning |
+| --- | --- |
+| `supported` | Evidence met the current heuristic/gate for support. |
+| `not_supported` | The tested change did not produce the expected evidence. |
+| `inconclusive` | Evidence is too sparse or qualified. |
+| `invalid` | Non-comparable or invalid trial output prevents a meaningful claim. |
+
+## Effect Types
+
+| Type | What it usually means |
+| --- | --- |
+| `tool_args_changed` | The intervention changed tool arguments at or near divergence. |
+| `output_changed` | The final or important output changed. |
+| `fixture_sensitive` | The conclusion depends on fixture output. |
+| `early_divergence` | The branch diverged early enough to be causally interesting. |
+| `non_comparable` | The branch drifted too far for comparison. |
+| `no_effect` | No meaningful change was detected. |
+
+## Reading Statistics
+
+Treat statistics as a compact evidence summary:
+
+- Trial counts tell you whether the sample is large enough to trust.
+- Fixture dependency rates tell you whether outputs rely on supplied data.
+- Non-comparable rates tell you whether the experiment design is too broad.
+- Confidence intervals should be read as caution signals, especially with low trial counts.
+- Ranked effects are leads; validate them against diffs and raw events before reporting.

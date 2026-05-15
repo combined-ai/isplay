@@ -1,0 +1,79 @@
+---
+title: Write An RCA Report
+description: Produce a final explanation that cites trace evidence, replay policy, fixture provenance, diffs, metrics, effects, and validity labels.
+---
+
+An isplay RCA report should be short enough to read and specific enough to reproduce. It should separate observed facts from replay-backed claims.
+
+## Required Sections
+
+| Section | Content |
+| --- | --- |
+| Executive finding | One bounded conclusion and confidence/validity caveat. |
+| Scope | Project ID, run ID, branch/replay/experiment IDs, adapter/runtime. |
+| Observed baseline | What happened in the captured run. |
+| Tested hypotheses | Branches or experiment arms and their interventions. |
+| Replay policy | Model, tool, drift, max steps, temperature. |
+| Evidence | First divergence, diffs, metrics, fixture use, effects. |
+| Validity | Labels, comparability, low-N limitations. |
+| Next actions | Further experiments, instrumentation gaps, or remediation. |
+
+## Template
+
+```text
+Finding:
+  <bounded conclusion>
+
+Scope:
+  Project: <projectId>
+  Base run: <runId>
+  Branch/replay/experiment: <ids>
+  Adapter/runtime: <name and version if known>
+
+Observed baseline:
+  <facts from captured events and context inventory>
+
+Hypothesis tested:
+  <intervention and target>
+
+Policy:
+  model=<policy>, tool=<policy>, drift=<policy>, maxSteps=<n>
+
+Evidence:
+  First divergence: <event/step>
+  Diffs: <summary>
+  Metrics: <summary>
+  Fixtures: <fixture IDs, provenance, dependency>
+  Effects: <ranked effect and status>
+
+Validity:
+  Labels: <labels>
+  Comparability: <value>
+  Caveats: <low-N, fixture, nondeterminism, unsupported areas>
+
+Next actions:
+  <specific follow-up>
+```
+
+## Wording Rules
+
+| Use | Avoid |
+| --- | --- |
+| "observed in the base run" | "caused" for base trace only |
+| "under recorded replay" | "would always" |
+| "sensitive to analyst fixture" | hiding fixture dependence |
+| "inconclusive with one trial" | statistical certainty from one run |
+| "non-comparable" | forcing a conclusion from drift |
+
+## Final Check
+
+Before sending the report, confirm it includes:
+
+- IDs.
+- Policy.
+- Fixture provenance.
+- First divergence.
+- Metrics.
+- Effects.
+- Validity labels.
+- Concrete next action.

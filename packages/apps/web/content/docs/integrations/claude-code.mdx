@@ -1,0 +1,92 @@
+---
+title: Claude Code Adapter
+description: Capture Claude Code hooks and stream-json output, generate hook settings, and understand model replay limitations.
+---
+
+`@isplay/adapter-claude-code` captures Claude Code managed runtime evidence through hooks and stream-json ingestion.
+
+## Exports
+
+| Export | Purpose |
+| --- | --- |
+| `createClaudeCodeAdapter(options?)` | Returns capabilities, hook handler, stream line ingestor, and stream event ingestor. |
+| `claudeCodeCapabilities` | Capability manifest for Claude Code. |
+| `ClaudeCodeHookHandler` | Handles prompt, pre-tool, post-tool, and stop hooks. |
+| `ClaudeStreamIngestor` | Converts stream-json events into model records and events. |
+| `createClaudeCodeSettings(command?)` | Emits Claude Code hook settings. |
+
+## Setup
+
+```ts
+import { init } from "@isplay/sdk";
+import { createClaudeCodeAdapter } from "@isplay/adapter-claude-code";
+
+init({
+  projectId: process.env.ISPLAY_PROJECT_ID!,
+  baseUrl: process.env.ISPLAY_API_URL,
+});
+
+const claude = createClaudeCodeAdapter({
+  runKey: (event) => String(event.session_id ?? "claude-code"),
+  replacementMode: "post_tool_context",
+});
+```
+
+## Hook Handling
+
+```ts
+const output = await claude.handleHook(input);
+```
+
+| Event | Captured behavior |
+| --- | --- |
+| `UserPromptSubmit` | Records event, annotates prompt, optionally returns additional context. |
+| `PreToolUse` | Records proposal, starts tool execution, consults fixture gateway, can deny or defer. |
+| `PostToolUse` | Finishes tool execution and can add injected output as post-tool context. |
+| `Stop` | Annotates final assistant message. |
+
+The settings helper also lists `PreCompact`, `SubagentStart`, and `SubagentStop`, but the current handler only special-cases prompt, pre/post tool, and stop.
+
+## Stream-JSON Ingestion
+
+```ts
+await claude.ingestStreamLine(line);
+await claude.ingestStreamEvent(event);
+```
+
+| Event type | Capture |
+| --- | --- |
+| `system` | Ensures a model call exists and records stream event. |
+| `assistant` | Ensures a model call exists and records stream event. |
+| `result` | Finishes the model call with output and usage. |
+| other | Records stream event. |
+
+## Settings Generation
+
+```ts
+import { createClaudeCodeSettings } from "@isplay/adapter-claude-code";
+
+const settings = createClaudeCodeSettings("isplay-claude-hook");
+```
+
+The generated object configures command hooks for user prompt, pre-tool, post-tool, stop, compact, and subagent events.
+
+## Capabilities
+
+Claude Code is `managed_replay`.
+
+| Primitive | Status | Mode |
+| --- | --- | --- |
+| Context inventory | `managed_replay` | `observe_only` |
+| Prompt patch | `managed_replay` | `native_replace` |
+| Model capture | `observability_only` | `observe_only` |
+| Model replay | `unsupported` | `observe_only` |
+| Tool capture | `managed_replay` | `observe_only` |
+| Tool fixture replay | `managed_replay` | `post_result_replace` |
+| Checkpointing | `managed_replay` | `observe_only` |
+
+## Warnings
+
+- Claude Code does not expose a stable public model-output injection API, so model replay is unsupported.
+- Built-in tool output replacement after execution cannot undo side effects.
+- Use deny/defer before execution for risky tools and isplay-owned MCP/proxy tools for fixture-safe replay.

@@ -1,0 +1,48 @@
+---
+title: Model, Tool, And Checkpoint Schemas
+description: Model calls, tool proposals, tool executions, checkpoints, operations, statuses, and side-effect classes.
+---
+
+## ModelCall
+
+| Field | Notes |
+| --- | --- |
+| `projectId`, `runId` | Ownership. |
+| `provider`, `model` | Optional provider/model identity. |
+| `operation` | `generate`, `stream`, or `unknown`. |
+| `status` | `running`, `ok`, or `error`. |
+| `settings` | Captured model settings. |
+| `requestArtifactId`, `responseArtifactId` | Payload artifacts. |
+| `usage`, `logprobs` | Optional provider output. |
+| `startedAt`, `endedAt`, `error`, `metadata` | Lifecycle and diagnostics. |
+
+## ToolProposal
+
+| Field | Notes |
+| --- | --- |
+| `modelCallId` | Optional model call that proposed it. |
+| `toolCallId` | Provider/runtime call ID. |
+| `toolName` | Stable tool name. |
+| `argsArtifactId`, `argsHash` | Captured proposed args. |
+| `schemaVersion` | Optional tool schema version. |
+
+## ToolExecution
+
+| Field | Notes |
+| --- | --- |
+| `proposalId` | Optional proposal being executed. |
+| `toolCallId`, `toolName` | Runtime identity. |
+| `status` | `running`, `ok`, `error`, or `blocked`. |
+| `argsArtifactId`, `resultArtifactId` | Payload artifacts. |
+| `argsHash`, `resultHash` | Stable comparison hashes. |
+| `sideEffectClass` | `none`, `read`, `write`, `external_mutation`, or `unknown`. |
+
+## Checkpoint
+
+| Field | Notes |
+| --- | --- |
+| `name` | Stable selector. |
+| `parentEventId` | Optional event that produced the state. |
+| `stateArtifactId`, `stateHash` | State payload and hash. |
+| `schemaName`, `schemaVersion` | State compatibility. |
+| `codeVersion`, `packageVersions` | Replay compatibility metadata. |

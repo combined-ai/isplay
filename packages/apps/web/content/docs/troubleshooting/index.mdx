@@ -1,0 +1,46 @@
+---
+title: Troubleshooting
+description: Fast diagnosis for setup, capture, replay, fixture, experiment, adapter, and docs build issues.
+---
+
+## Setup
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| `Docker is not available` | Docker daemon is stopped | Start Docker or set `DATABASE_URL`. |
+| CLI cannot connect | Wrong or missing `ISPLAY_API_URL` | Export the API URL and run `npx isplay health`. |
+| Project required | Missing `ISPLAY_PROJECT_ID` | Export it or pass `--project`. |
+
+## Capture
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| No events in run | Code did not execute inside `withRun()` or run context | Wrap the execution path or use adapter-managed context. |
+| Missing model finish | Stream not drained or error path skipped finish | Drain streams and finish in `finally`/error paths. |
+| Sparse context | No annotations for prompt/retrieval/memory/state | Add context annotations with stable paths. |
+| Tool output only | Proposal was not captured | Record tool proposal before execution. |
+
+## Replay
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| Replay paused | Missing divergent tool output | Inspect requirements, add fixture, resume. |
+| Live policy error | No executor configured | Use recorded model and pause-for-fixture tool policy. |
+| Non-comparable output | Branch too broad or checkpoint too early | Narrow intervention or choose later checkpoint. |
+| No effect | Hypothesis unsupported under current policy | Try a narrower target or another hypothesis. |
+
+## Experiments
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| `--no-wait` still returns results | Current server is synchronous | Treat no-wait as future-facing. |
+| Low confidence | Too few repetitions | Increase repetitions and reduce fixture dependence. |
+| Many requirements | Branches changed tool inputs broadly | Narrow targets or prepare fixtures. |
+
+## Docs Build
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| Missing page error | `meta.json` lists a missing file | Add the page or remove the entry. |
+| MDX compile error | Invalid JSX or unclosed component | Fix the reported line and rerun `npm run build:web`. |
+| Old link | Folder rename left stale workflow or adapter path | Replace with `/docs/guides` or `/docs/integrations`. |

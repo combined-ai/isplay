@@ -1,0 +1,13 @@
+---
+title: Environment Reference
+description: Environment variables and defaults used by the repo.
+---
+
+| Variable | Default | Used by | Notes |
+| --- | --- | --- | --- |
+| `DATABASE_URL` | none | server, CLI `start` | Direct Postgres connection. If absent, CLI `start` uses Docker Postgres. |
+| `PORT` | `7373` | server | Direct server startup port. |
+| `ISPLAY_ARTIFACTS_DIR` | `.isplay/artifacts` | server | Artifact payload root. |
+| `ISPLAY_API_URL` | `http://127.0.0.1:7373` | CLI, API client, SDK, adapters | API origin. |
+| `ISPLAY_PROJECT_ID` | none | CLI, SDK | Default project ID. |
+| `USER` | OS user | fixture CLI | Fixture author default. |

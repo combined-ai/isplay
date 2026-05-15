@@ -1,0 +1,97 @@
+---
+title: Codex Adapter
+description: Capture Codex hooks and JSONL events, classify tools, consult fixture gateways, generate plugin files, and understand managed replay limits.
+---
+
+`@isplay/adapter-codex` targets Codex-style managed runtime surfaces.
+
+## Exports
+
+| Export | Purpose |
+| --- | --- |
+| `createCodexAdapter(options?)` | Returns capabilities, hook handler, JSONL line ingestor, and JSON event ingestor. |
+| `codexCapabilities` | Capability manifest for Codex. |
+| `CodexHookHandler` | Handles prompt, pre-tool, permission, post-tool, and stop hook inputs. |
+| `CodexJsonlIngestor` | Converts JSONL turn/item events to model and tool records. |
+| `createCodexPluginFiles(command?)` | Generates plugin files for hook wiring. |
+| `threadFork`, `threadRollback`, `injectAssistantContext` | App-server request helper payloads. |
+
+## Setup
+
+```ts
+import { init } from "@isplay/sdk";
+import { createCodexAdapter } from "@isplay/adapter-codex";
+
+init({
+  projectId: process.env.ISPLAY_PROJECT_ID!,
+  baseUrl: process.env.ISPLAY_API_URL,
+});
+
+const codex = createCodexAdapter({
+  runKey: (event) => String(event.thread_id ?? event.session_id ?? "codex"),
+});
+```
+
+## Hook Handling
+
+```ts
+const output = await codex.handleHook(input);
+```
+
+Handled hook events:
+
+| Event | Captured behavior |
+| --- | --- |
+| `UserPromptSubmit` | Records hook event and annotates user prompt. Can return additional context. |
+| `PreToolUse` | Records proposal and starts tool execution. Consults fixture gateway. |
+| `PermissionRequest` | Starts tool execution and can deny permission through hook-specific output. |
+| `PostToolUse` | Finishes tool execution with output. Can add replacement context when configured. |
+| `Stop` | Annotates final assistant message when present. |
+
+`postToolReplacement` controls whether injected fixtures can be returned as post-tool context. It cannot undo a built-in side effect that already happened.
+
+## JSONL Ingestion
+
+```ts
+await codex.ingestJsonLine(line);
+await codex.ingestJsonEvent(event);
+```
+
+Mapped events:
+
+| JSONL event | Capture |
+| --- | --- |
+| `turn.started` | Starts model call with provider `openai` and operation `stream`. |
+| `turn.completed` / `turn.failed` | Finishes model call with output, usage, or error. |
+| `item.started` | Captures tool proposal and tool start for known tool item types. |
+| `item.completed` | Finishes the matching tool execution. |
+
+Tool name mapping:
+
+| Item type | Tool name |
+| --- | --- |
+| `command_execution` | `Bash` |
+| `file_change` | `apply_patch` |
+| `mcp_tool_call` | `tool_name`, `name`, or `mcp` |
+| `web_search` | `WebSearch` |
+
+## Capabilities
+
+Codex is `managed_replay`.
+
+| Primitive | Status | Mode |
+| --- | --- | --- |
+| Context inventory | `managed_replay` | `observe_only` |
+| Prompt patch | `managed_replay` | `native_replace` |
+| Model capture | `managed_replay` | `proxy_replace` |
+| Model replay | `managed_replay` | `proxy_replace` |
+| Tool capture | `managed_replay` | `observe_only` |
+| Tool fixture replay | `managed_replay` | `post_result_replace` |
+| Checkpointing | `managed_replay` | `observe_only` |
+
+## Warnings
+
+- Public Codex hooks do not provide pre-execution synthetic results for every built-in tool.
+- Full built-in shell or apply_patch replay needs a fork or upstream pre-dispatch replacement hook.
+- Use isplay-owned MCP or proxy tools when fixture-safe replay matters.
+- Treat Bash, write, edit, patch, send, deploy, and delete tools as side-effecting unless proven otherwise.

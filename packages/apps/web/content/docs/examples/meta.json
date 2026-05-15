@@ -1,0 +1,14 @@
+{
+  "title": "Examples",
+  "description": "Copyable SDK, adapter, integration, runtime, and demo examples",
+  "pages": [
+    "index",
+    "sdk-capture",
+    "adapter-kit",
+    "ai-sdk",
+    "langgraph",
+    "mastra-claims",
+    "openclaw",
+    "managed-runtime"
+  ]
+}

@@ -1,0 +1,101 @@
+---
+title: Instrument With The SDK
+description: Use @isplay/sdk directly when you own the agent execution path.
+---
+
+Use the SDK when you can place capture code around the actual model, tool, state, and checkpoint boundaries. Dedicated adapters use the same methods internally.
+
+## Minimal Setup
+
+```ts
+import { init } from "@isplay/sdk";
+
+const isplay = init({
+  projectId: process.env.ISPLAY_PROJECT_ID!,
+  baseUrl: process.env.ISPLAY_API_URL,
+  serviceName: "claims-agent",
+});
+```
+
+If you do not pass `baseUrl`, the SDK uses `ISPLAY_API_URL` or `http://127.0.0.1:7373`.
+
+## Capture A Run
+
+```ts
+await isplay.withRun({ name: "claim-review", metadata: { claimId } }, async () => {
+  await isplay.annotateContext({
+    kind: "system_message",
+    path: "prompt.system",
+    value: systemPrompt,
+  });
+
+  await isplay.checkpoint("before-tool-choice", state);
+
+  const call = await isplay.startModelCall({
+    provider: "openai",
+    model: "gpt-5.4-mini",
+    operation: "generate",
+    params: { messages },
+    settings: { temperature: 0 },
+  });
+
+  const response = await model.generate(messages);
+
+  await isplay.finishModelCall(call, {
+    output: response,
+    usage: response.usage,
+  });
+});
+```
+
+`withRun()` creates the run, installs async run context, and patches the run status when the callback finishes or throws.
+
+## Capture Tools
+
+```ts
+const proposal = await isplay.recordToolProposal({
+  modelCallId: call.id,
+  toolCallId: toolCall.id,
+  toolName: toolCall.name,
+  args: toolCall.args,
+});
+
+const execution = await isplay.startToolExecution({
+  proposalId: proposal.id,
+  toolCallId: proposal.toolCallId,
+  toolName: proposal.toolName,
+  args: toolCall.args,
+  sideEffectClass: "read",
+});
+
+try {
+  const output = await runTool(toolCall);
+  await isplay.finishToolExecution(execution, { output });
+  return output;
+} catch (error) {
+  await isplay.finishToolExecution(execution, { error });
+  throw error;
+}
+```
+
+## SDK Placement Rules
+
+| Method | Must be inside run context? | Advice |
+| --- | --- | --- |
+| `withRun()` | no | Use for top-level executions. |
+| `withRunContext()` | no | Use when a runtime already created a run. |
+| `recordEvent()` | yes, otherwise no-op | Use for compact framework events. |
+| `annotateContext()` | yes | Add prompt, retrieval, memory, state, schemas, settings. |
+| `checkpoint()` | yes | Place before branchable decisions. |
+| `startModelCall()` / `finishModelCall()` | yes | Always finish in `finally` or error path. |
+| `recordToolProposal()` | yes | Capture model intent before execution. |
+| `startToolExecution()` / `finishToolExecution()` | yes | Capture side-effect class and result/error. |
+| `uploadArtifact()` | no | Use for payloads outside run context if needed. |
+
+## Common Mistakes
+
+- Capturing only final output. You need prompts, retrieval, memory, tools, and checkpoints for replay.
+- Capturing tool execution without tool proposal. You lose the model intent/runtime distinction.
+- Forgetting side-effect class. Unknown tools are treated conservatively.
+- Creating checkpoints after the decision. Branches need the state before the suspected cause.
+- Letting streams escape without finishing model calls. Always drain or explicitly finish capture.

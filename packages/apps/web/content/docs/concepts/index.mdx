@@ -1,0 +1,30 @@
+---
+title: Concepts
+description: Standalone explanations for every major isplay concept.
+---
+
+isplay is a replayable evidence system for agent runs. These pages explain the vocabulary behind the CLI, SDK, adapters, HTTP API, replay engine, experiment runner, and analyst reports.
+
+<Cards>
+  <Card title="Object model" href="/docs/concepts/object-model" description="Projects, runs, events, artifacts, model calls, tools, checkpoints, branches, replays, experiments, and analysis runs." />
+  <Card title="Capture model" href="/docs/concepts/capture-model" description="What capture records, why it separates intent from execution, and how redaction fits in." />
+  <Card title="Event streams" href="/docs/concepts/event-streams" description="Ordered events, sequence numbers, event families, custom framework events, and append semantics." />
+  <Card title="Context inventory" href="/docs/concepts/context-inventory" description="Searchable model-visible, tool-visible, state-only, and metadata-only decision inputs." />
+  <Card title="Checkpoints" href="/docs/concepts/checkpoints" description="State snapshots, branch points, hashes, schema versions, and practical placement strategy." />
+  <Card title="Branches and interventions" href="/docs/concepts/branches-and-interventions" description="How hypotheses become checkpoint forks and targeted patches." />
+  <Card title="Replay policies" href="/docs/concepts/replay-policies" description="Model, tool, drift, budget, and temperature policy tradeoffs." />
+  <Card title="Fixtures and provenance" href="/docs/concepts/fixtures-and-provenance" description="How missing divergent tool outputs are represented, satisfied, and qualified." />
+  <Card title="Experiments, effects, statistics" href="/docs/concepts/experiments-effects-statistics" description="Hypothesis batches, arms, trials, low-N output, statistics, and ranked effects." />
+  <Card title="Evidence validity reporting" href="/docs/concepts/evidence-validity-reporting" description="Validity labels, evidence nodes, evidence edges, and report wording." />
+  <Card title="Adapter capabilities" href="/docs/concepts/adapter-capabilities" description="Native replacement, proxy replacement, post-result replacement, blocking, and observability-only modes." />
+  <Card title="Storage model" href="/docs/concepts/storage-model" description="Postgres tables, JSONB projections, artifact files, hashes, and catalog reconstruction." />
+  <Card title="Schema vs executor support" href="/docs/concepts/schema-vs-executor-support" description="How to read features that are modeled in schemas but not fully executable in the local engine." />
+</Cards>
+
+## How To Read These Pages
+
+Use concept pages for durable mental models. Use [guides](/docs/guides) when you need a task recipe. Use [reference](/docs/reference) when you need exact command names, route paths, enum values, fields, and limitations.
+
+<Callout type="info" title="Evidence discipline">
+Most isplay concepts exist to prevent overclaiming. A replay is not automatically proof, a fixture is not automatically reality, and an experiment with one trial is not automatically a statistically supported conclusion.
+</Callout>

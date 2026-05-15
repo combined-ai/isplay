@@ -1,0 +1,54 @@
+---
+title: Context Inventory
+description: Searchable normalized decision inputs for prompts, retrieval, memory, state, tools, and settings.
+---
+
+Context inventory is the bridge between raw traces and useful hypotheses. It normalizes captured material into items that can be searched, hashed, targeted by experiments, and cited in reports.
+
+## Context Item Kinds
+
+| Kind | Examples | Typical visibility |
+| --- | --- | --- |
+| `system_message` | System prompt | `model_visible` |
+| `developer_message` | Developer prompt sections | `model_visible` |
+| `user_message` | User request | `model_visible` |
+| `assistant_message` | Assistant stream or final answer | `model_visible` |
+| `prompt_clause` | One instruction extracted from a prompt | `model_visible` |
+| `tool_argument` | Tool input payload | `tool_visible` or `model_visible` |
+| `tool_result` | Tool output payload | `tool_visible` or `model_visible` |
+| `retrieval_chunk` | RAG document, source snippet, ranked result | `model_visible` |
+| `memory_item` | Persisted memory or scratchpad | `model_visible` |
+| `state_field` | Checkpoint state path or graph state | `state_only` |
+| `tool_schema` | Tool name, description, parameters | `model_visible` |
+| `model_setting` | Temperature, max steps, provider config | `metadata_only` or `model_visible` |
+
+Visibility values are `model_visible`, `tool_visible`, `state_only`, and `metadata_only`.
+
+## Hashes And Paths
+
+Every context item has a `path` and `contentHash`.
+
+- Use stable paths such as `prompt.system`, `retrieval.claimPolicy[0]`, `state.claim.status`, or `tools.lookupClaim.schema`.
+- Use `contentHash` as an `expectedBaseHash` in experiment specs when you need stale target protection.
+- Use `ordinal` when item order matters, especially prompt messages, retrieval chunks, and prompt clauses.
+
+## Why Inventory Beats Raw Prompt Dumps
+
+A single prompt artifact is difficult to target. Inventory lets you ask better questions:
+
+| Question | Inventory query |
+| --- | --- |
+| Did a policy clause mention refunds? | `kind=prompt_clause`, `query=refund` |
+| Which retrieval chunks were model-visible? | `kind=retrieval_chunk`, visibility filter in metadata or result inspection |
+| Did the model see a tool schema? | `kind=tool_schema` |
+| Was a state field present before a decision? | checkpoint inventory for `kind=state_field` |
+| Which setting could explain nondeterminism? | `kind=model_setting` |
+
+## Capture Advice
+
+- Annotate context close to the runtime boundary, not after the fact.
+- Split large prompts into clauses when individual instructions may be causal.
+- Capture retrieval rank and source metadata.
+- Capture memory provenance: persistent memory, session memory, scratchpad, or tool-derived state.
+- Capture tool schemas as context, not only tool call args.
+- Store redacted content artifacts rather than stuffing sensitive text into metadata.

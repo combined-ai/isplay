@@ -1,0 +1,48 @@
+---
+title: Capture Policy Schema
+description: Capture policy actions, redaction rules, default pattern redaction, and redaction reports.
+---
+
+## CapturePolicy
+
+```json
+{
+  "defaultAction": "capture",
+  "rules": [
+    { "path": "customer.email", "action": "mask", "reason": "PII" }
+  ]
+}
+```
+
+## Actions
+
+```text
+capture
+drop
+hash
+mask
+encrypt
+artifact_only
+metadata_only
+```
+
+## Current Action Behavior
+
+| Action | Current implementation |
+| --- | --- |
+| `capture` | Capture after default pattern redaction. |
+| `drop` | Replace field with `null`. |
+| `hash` | Replace with `[HASHED]`. |
+| `mask` | Replace with `[REDACTED]`. |
+| `encrypt` | Replace with `[REDACTED]`; no encryption implementation is wired. |
+| `artifact_only` | Replace with `[REDACTED]`. |
+| `metadata_only` | Replace with `[REDACTED]`. |
+
+## RedactionReport
+
+| Field | Meaning |
+| --- | --- |
+| `fieldsDropped` | Number of fields dropped. |
+| `fieldsMasked` | Number of fields masked. |
+| `fieldsHashed` | Number of fields hashed. |
+| `patternsMatched` | Pattern classes detected by default redaction. |

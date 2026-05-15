@@ -1,0 +1,27 @@
+---
+title: LangGraph Example
+description: Wrap a node and checkpoint state.
+---
+
+```ts
+import { init } from "@isplay/sdk";
+import { createLangGraphAdapter } from "@isplay/adapter-langgraph";
+
+const client = init({
+  projectId: process.env.ISPLAY_PROJECT_ID!,
+  baseUrl: process.env.ISPLAY_API_URL,
+  serviceName: "langgraph-agent",
+});
+
+const adapter = createLangGraphAdapter({ client });
+
+const reviewNode = adapter.wrapNode("review", async (state) => {
+  await client.checkpoint("before-review-node", state);
+  return {
+    ...state,
+    reviewed: true,
+  };
+});
+```
+
+Wrap chat models and tools through the LangGraph adapter when those boundaries are where model/tool behavior happens.

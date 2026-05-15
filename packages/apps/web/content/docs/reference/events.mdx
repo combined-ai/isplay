@@ -1,0 +1,58 @@
+---
+title: Events Reference
+description: Known event types, fields, custom event rules, and event-family guidance.
+---
+
+## Event Fields
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `id` | string | Event ID. |
+| `projectId` | string | Owning project. |
+| `runId` | string | Owning run. |
+| `seq` | integer | Non-negative sequence within the run. |
+| `type` | string | Known type or custom framework type. |
+| `refId` | string | Optional projection or related record ID. |
+| `parentEventId` | string | Optional parent event. |
+| `occurredAt` | string | ISO timestamp. |
+| `data` | JSON | Event payload. |
+| `metadata` | object | Extra metadata. |
+
+## Known Types
+
+```text
+run.started
+run.finished
+model_call.started
+model_call.finished
+tool.proposed
+tool.started
+tool.finished
+checkpoint.created
+artifact.created
+branch.created
+intervention.created
+replay.started
+replay.paused
+replay.finished
+fixture.required
+fixture.created
+analysis.created
+```
+
+## Custom Events
+
+Custom event strings are allowed. Use namespaced names:
+
+```text
+mastra.step.finished
+langgraph.node.completed
+codex.hook.PreToolUse
+openclaw.llm_input
+```
+
+Custom events should still use `refId` when they relate to a durable record.
+
+## Append Behavior
+
+`POST /v1/runs/{id}/events:batch` checks that every event body `runId` matches the path run ID. Duplicate `(runId, seq)` inserts are ignored by the store.

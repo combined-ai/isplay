@@ -1,0 +1,52 @@
+---
+title: Reference
+description: Complete command, API, SDK, policy, schema, and implementation-limit reference for isplay.
+---
+
+Use the reference section when you need exact surfaces rather than workflow guidance.
+
+<Cards>
+  <Card title="Packages" href="/docs/reference/packages" description="Workspace packages, package names, exports, dependencies, and intended users." />
+  <Card title="CLI" href="/docs/reference/cli" description="All commands, options, environment variables, JSON input rules, and gotchas." />
+  <Card title="API" href="/docs/reference/api" description="Routes, resource relationships, request/response behavior, errors, and OpenAPI." />
+  <Card title="API client" href="/docs/reference/api-client" description="Programmatic HTTP client, resources, options, error behavior, and method groups." />
+  <Card title="OpenAPI" href="/docs/reference/openapi" description="Where to fetch the generated OpenAPI document and how it is produced." />
+  <Card title="SDK" href="/docs/reference/sdk" description="SDK initialization, run context, capture methods, surface methods, and adapter interaction." />
+  <Card title="Policies" href="/docs/reference/policies" description="Replay, fixture, side-effect, capture, redaction, validity, and capability policies." />
+  <Card title="Events" href="/docs/reference/events" description="Known event types, custom event rules, fields, and event-family guidance." />
+  <Card title="Interventions" href="/docs/reference/interventions" description="Intervention kinds, patch shapes, target selectors, and stale-target guards." />
+  <Card title="Fixtures" href="/docs/reference/fixtures" description="Fixture requirements, tool fixtures, matchers, provenance, and replay resume behavior." />
+  <Card title="Metrics, diffs, effects" href="/docs/reference/metrics-diffs-effects" description="Comparison outputs, metric names, effect statuses, effect types, and validity labels." />
+  <Card title="Adapter capabilities" href="/docs/reference/adapter-capabilities" description="Capability manifest statuses and interception modes." />
+  <Card title="Schemas" href="/docs/reference/schemas" description="Core object schemas, event types, intervention kinds, context inventory, and experiments." />
+  <Card title="Storage" href="/docs/reference/storage" description="Postgres tables, projections, artifacts, migrations, and backup implications." />
+  <Card title="Environment" href="/docs/reference/environment" description="All environment variables and defaults." />
+  <Card title="Errors" href="/docs/reference/errors" description="Structured API error shape, HTTP status meanings, and client error behavior." />
+  <Card title="Limits" href="/docs/reference/limits" description="Current implementation caveats, stubs, and behavior that should be documented honestly." />
+</Cards>
+
+## Public Packages
+
+| Package | Purpose |
+| --- | --- |
+| `isplay` | Root package and CLI bin. |
+| `@isplay/cli` | Commander CLI. |
+| `@isplay/server` | Hono API server and OpenAPI registration. |
+| `@isplay/web` | Next/Fumadocs documentation site. |
+| `@isplay/worker` | Graphile Worker task registration, currently stub handlers. |
+| `@isplay/core` | Zod schemas, IDs, JSON serialization, capture policy, redaction. |
+| `@isplay/api-client` | OpenAPI fetch client and stable API errors. |
+| `@isplay/sdk` | Capture client, run context, API surface. |
+| `@isplay/replay` | Interventions, fixture gateway, replay engine, diff metrics. |
+| `@isplay/analysis` | Validity labels, effect ranking, analysis run construction. |
+| `@isplay/postgres` | Store, migrations, artifacts, context inventory, experiments. |
+| `@isplay/adapter-kit` | Shared adapter primitives. |
+| `@isplay/adapter-ai-sdk` | AI SDK model middleware and tool instrumentation. |
+| `@isplay/adapter-mastra` | Mastra helper adapter. |
+| `@isplay/adapter-langgraph` | LangGraph nodes, models, streams, and tools. |
+| `@isplay/adapter-runtime` | Shared runtime capability, fixture, JSON, and run-registry helpers. |
+| `@isplay/adapter-codex` | Codex hook and JSONL ingestion adapter. |
+| `@isplay/adapter-claude-code` | Claude Code hook and stream-json adapter. |
+| `@isplay/adapter-openclaw` | OpenClaw native plugin adapter. |
+
+All packages are ESM and export their root entrypoint.

@@ -1,0 +1,55 @@
+---
+title: Experiment Runner
+description: How hypothesis batches become branches, arms, trials, replays, statistics, and effects.
+---
+
+Experiments automate repeated replay work. A hypothesis batch describes what to test; the runner materializes branches and arms, runs replays, aggregates requirements, and ranks effects.
+
+## Input Shape
+
+An experiment plan includes:
+
+- project ID and base run ID
+- checkpoint selector
+- replay policy
+- hypotheses
+- interventions
+- trial plan
+- validity gates
+- metadata
+
+## Runner Flow
+
+<Steps>
+  <Step>Resolve the checkpoint selector to a checkpoint.</Step>
+  <Step>Create the experiment record.</Step>
+  <Step>Create one arm per hypothesis or configured branch.</Step>
+  <Step>Create branches and interventions for each arm.</Step>
+  <Step>Run trials by creating replays.</Step>
+  <Step>Collect paused fixture requirements.</Step>
+  <Step>Build trial matrix, statistics, arm comparison output, and ranked effects.</Step>
+</Steps>
+
+## Current Execution Model
+
+The current server runner is synchronous and serial. It parses trial plan fields such as `concurrency`, `maxReplays`, and `stopRule`, but those are not fully enforced as asynchronous scheduling controls.
+
+## Validity Gates
+
+Validity gates model evidence discipline:
+
+| Gate | Purpose |
+| --- | --- |
+| `minimum_trials` | Require enough repetitions before support. |
+| `max_fixture_dependency_rate` | Limit fixture-sensitive conclusions. |
+| `max_non_comparable_rate` | Reject experiments with too much drift. |
+| `requires_effect_size` | Require a minimum effect signal. |
+
+## What To Improve When Experiments Are Noisy
+
+- Use a later checkpoint.
+- Split bundled interventions.
+- Add better context annotations so targets are precise.
+- Resolve fixtures with narrower matchers.
+- Increase repetitions when nondeterminism matters.
+- Treat non-comparable arms as design feedback, not as evidence.

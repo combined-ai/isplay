@@ -1,0 +1,185 @@
+---
+title: Install isplay
+description: The clear path for installing isplay with the agent skill or wiring one adapter manually.
+---
+
+Most teams should use the agent skill. It installs the right pieces for the repo, chooses the adapter, captures the next run, and starts the investigation loop.
+
+## Recommended: Agent Skill
+
+<Steps>
+  <Step>
+    **Install the skill.**
+
+```bash
+npx skills add isplay/isplay --skill isplay-analysis
+```
+
+  </Step>
+  <Step>
+    **Restart Codex, then prompt the agent.**
+
+```text
+Use $isplay-analysis to set up isplay for this repo, choose the right adapter, capture my next run, and return an evidence-bounded RCA report.
+```
+
+  </Step>
+</Steps>
+
+## Manual: Pick One Adapter
+
+Use manual setup when you want exact control over the framework wiring. Start isplay once, install the adapter that matches your runtime, then capture a run.
+
+<Steps>
+  <Step>
+    **Start isplay and create a project.**
+
+```bash
+npx isplay start
+export ISPLAY_API_URL="<api url shown by isplay start>"
+npx isplay projects create --name "Local Agent Lab"
+export ISPLAY_PROJECT_ID="<id from JSON>"
+```
+
+  </Step>
+</Steps>
+
+<Tabs items={["Adapter Kit", "AI SDK", "Mastra", "LangGraph", "OpenClaw", "Managed"]}>
+  <Tab>
+
+```bash
+npm install isplay @isplay/sdk @isplay/adapter-kit
+```
+
+Use this for custom frameworks and direct SDK wiring.
+
+[Install for Adapter Kit](/docs/integrations/kit#install-for-adapter-kit)
+
+  </Tab>
+  <Tab>
+
+```bash
+npm install isplay @isplay/sdk @isplay/adapter-ai-sdk ai
+```
+
+Use this for Vercel AI SDK middleware and tool wrappers.
+
+[Install for AI SDK](/docs/integrations/ai-sdk#install-for-ai-sdk)
+
+  </Tab>
+  <Tab>
+
+```bash
+npm install isplay @isplay/sdk @isplay/adapter-mastra @mastra/core mastra
+```
+
+Use this for Mastra workflows, tools, and agent events.
+
+[Install for Mastra](/docs/integrations/mastra#install-for-mastra)
+
+  </Tab>
+  <Tab>
+
+```bash
+npm install isplay @isplay/sdk @isplay/adapter-langgraph @langchain/langgraph
+```
+
+Use this for LangGraph nodes, streams, checkpoints, and tools.
+
+[Install for LangGraph](/docs/integrations/langgraph#install-for-langgraph)
+
+  </Tab>
+  <Tab>
+
+```bash
+npm install isplay @isplay/sdk @isplay/adapter-openclaw
+```
+
+Use this for OpenClaw native hooks and fixture decisions.
+
+[Install for OpenClaw](/docs/integrations/openclaw#install-for-openclaw)
+
+  </Tab>
+  <Tab>
+
+```bash
+npm install isplay @isplay/sdk @isplay/adapter-codex
+npm install isplay @isplay/sdk @isplay/adapter-claude-code
+```
+
+Use this for managed Codex or Claude Code trace ingestion.
+
+[Install for managed runtimes](/docs/integrations/managed-runtimes#install-for-managed-runtimes)
+
+  </Tab>
+</Tabs>
+
+## Wire Capture
+
+These are the shared SDK primitives every adapter builds on. Adapter pages show the framework-specific wrapper code.
+
+<Steps>
+  <Step>
+    **Initialize the SDK where the agent runs.**
+
+```ts
+import { init } from "@isplay/sdk";
+
+export const isplay = init({
+  projectId: process.env.ISPLAY_PROJECT_ID!,
+  baseUrl: process.env.ISPLAY_API_URL,
+});
+```
+
+  </Step>
+  <Step>
+    **Capture the decision point.**
+
+```ts
+await isplay.withRun({ name: "claim-review" }, async () => {
+  await isplay.annotateContext({
+    kind: "system_message",
+    path: "prompt.system",
+    value: "Prefer policy-grounded answers.",
+  });
+
+  await isplay.checkpoint("before-decision", {
+    stage: "ready",
+  });
+});
+```
+
+  </Step>
+</Steps>
+
+## Start Analyzing
+
+Once a run exists, use the skill for the investigation loop or inspect the run manually.
+
+<Tabs items={["Agent", "CLI"]}>
+  <Tab>
+
+```text
+Use $isplay-analysis. Find my latest captured run, inspect the context inventory, branch likely hypotheses, replay them, resolve fixture requirements when safe, and return an RCA report with validity labels.
+```
+
+  </Tab>
+  <Tab>
+
+```bash
+npx isplay runs list --project "$ISPLAY_PROJECT_ID"
+npx isplay discover run <runId>
+npx isplay runs checkpoints <runId>
+```
+
+  </Tab>
+</Tabs>
+
+## Next Pages
+
+<Cards>
+  <Card title="Agent-led analysis" href="/docs/guides/agent-analysis" description="How the skill should drive RCA from captured evidence." />
+  <Card title="Start analyzing" href="/docs/guides/start-analyzing" description="Discover, replay, compare, and report after a run exists." />
+  <Card title="First captured run" href="/docs/tutorials/first-captured-run" description="A concrete SDK-backed capture walkthrough." />
+  <Card title="Integrations" href="/docs/integrations" description="All adapter-specific install and wiring pages." />
+</Cards>

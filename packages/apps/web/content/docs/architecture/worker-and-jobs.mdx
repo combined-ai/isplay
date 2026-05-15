@@ -1,0 +1,39 @@
+---
+title: Worker And Jobs
+description: Current background job surface, SSE route, and worker handler status.
+---
+
+The repository includes a worker package and job route, but replay and experiments currently execute synchronously in the API server.
+
+## Worker Package
+
+`@isplay/worker` registers Graphile Worker-style task handlers for:
+
+```text
+replay.exact
+experiment.run
+diff.compute
+metrics.compute
+export.create
+```
+
+The current handlers log payloads. They are placeholders for future asynchronous processing.
+
+## Job Events Route
+
+```text
+GET /v1/jobs/{id}/events
+```
+
+The route returns a simple Server-Sent Events body with `job.started` and `job.finished` for the provided ID. It is not a persisted job-status feed.
+
+## Operational Meaning
+
+| Question | Current answer |
+| --- | --- |
+| Does `experiments run --no-wait` queue background work? | No. The server currently runs synchronously. |
+| Are replay jobs persisted for worker execution? | Not in the current implementation. |
+| Can I subscribe to real replay progress? | Not yet. |
+| Should production deployments depend on worker behavior? | No; treat it as a future extension point. |
+
+See [Limits](/docs/reference/limits) for the consolidated current-behavior reference.

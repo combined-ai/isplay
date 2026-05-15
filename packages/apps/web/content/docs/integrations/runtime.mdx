@@ -1,0 +1,86 @@
+---
+title: Runtime Adapter Primitives
+description: Shared capability manifests, fixture gateway decisions, JSON helpers, side-effect inference, and runtime run registry.
+---
+
+`@isplay/adapter-runtime` is not a user-facing framework adapter. It provides shared primitives used by Codex, Claude Code, OpenClaw, and future managed runtime adapters.
+
+## Exports
+
+| Export | Purpose |
+| --- | --- |
+| `AdapterCapabilityManifest` | Describes adapter support level and primitive capabilities. |
+| `primitive(status, mode, notes, requirements?)` | Helper for capability records. |
+| `supportsNativeReplay(manifest)` | Returns true only when every primitive is `native_full`. |
+| `unsupportedPrimitive(notes)` | Convenience for unsupported capabilities. |
+| `RuntimeFixtureGateway` | Interface that decides allow/block/require/inject for runtime tool calls. |
+| `allowAllFixtures` | Fixture gateway that allows all tool calls. |
+| `isInjection(decision)` | Type guard for fixture injection decisions. |
+| `RuntimeRunRegistry` | Lazily creates and reuses isplay runs by runtime key. |
+| `toJsonValue`, `objectRecord`, `textOf`, `firstString` | Safe conversion helpers for loose runtime payloads. |
+| `sideEffectFromToolName` | Name-based side-effect fallback. |
+
+## Capability Manifest
+
+```ts
+import { primitive, type AdapterCapabilityManifest } from "@isplay/adapter-runtime";
+
+export const capabilities: AdapterCapabilityManifest = {
+  adapterId: "example",
+  displayName: "Example Runtime",
+  status: "managed_replay",
+  primitives: {
+    contextInventory: primitive("managed_replay", "observe_only", "Hooks expose context."),
+    toolFixtureReplay: primitive("managed_replay", "post_result_replace", "Can add context after tool execution."),
+  },
+  warnings: ["Built-in tools cannot be replaced before execution."],
+};
+```
+
+Support levels: `native_full`, `managed_replay`, `observability_only`, `unsupported`.
+
+Interception modes: `native_replace`, `proxy_replace`, `post_result_replace`, `block_only`, `observe_only`.
+
+## Fixture Decisions
+
+```ts
+type RuntimeFixtureDecision =
+  | { action: "allow" }
+  | { action: "block"; reason: string }
+  | { action: "require_fixture"; reason: string }
+  | { action: "inject"; fixture: ToolFixture; output: JsonValue };
+```
+
+Managed adapters call the fixture gateway before or after tool execution depending on runtime hooks. When the action is `inject`, the adapter can only safely skip side effects if the runtime supports pre-execution replacement.
+
+## Runtime Run Registry
+
+```ts
+const runs = new RuntimeRunRegistry(client);
+
+await runs.capture(
+  {
+    key: "thread_123",
+    framework: "codex",
+    metadata: { source: "hook" },
+  },
+  async (run) => {
+    await client.recordEvent("codex.hook.UserPromptSubmit", payload);
+  }
+);
+```
+
+The registry creates one run per runtime key and runs callbacks inside SDK run context. It can later patch the run to `ok`, `error`, or `cancelled`.
+
+## Side-Effect Inference
+
+`sideEffectFromToolName()` is a heuristic:
+
+| Tool name contains | Class |
+| --- | --- |
+| `read`, `search`, `fetch`, `grep` | `read` |
+| `write`, `edit`, `patch`, `bash` | `write` |
+| `send`, `deploy`, `delete` | `external_mutation` |
+| otherwise | `unknown` |
+
+Use it as a fallback only. Production integrations should supply side-effect class explicitly.

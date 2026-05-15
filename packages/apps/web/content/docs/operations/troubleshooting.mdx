@@ -1,0 +1,27 @@
+---
+title: Operations Troubleshooting
+description: Common setup, capture, replay, fixture, and docs build problems.
+---
+
+| Problem | Diagnosis | Fix |
+| --- | --- | --- |
+| `Docker is not available` | Docker daemon unavailable | Start Docker or export `DATABASE_URL`. |
+| API client cannot connect | Wrong `ISPLAY_API_URL` | Run `npx isplay doctor` and export the printed API URL. |
+| Missing project error | `ISPLAY_PROJECT_ID` absent | Create a project and export its ID, or pass `--project`. |
+| Replay pauses | Divergent tool output has no fixture | Run `isplay replay requirements <replayId>`, add a fixture, then resume. |
+| Replay errors on live policy | No live executor | Use `recorded-only` model policy and `pause-for-fixture` tool policy. |
+| No model call finish for stream | Stream was not consumed | Ensure the application drains AI SDK or LangGraph streams. |
+| Sparse context inventory | Adapter did not annotate prompts, retrieval, memory, or state | Add explicit context annotations or richer wrappers. |
+| Fixture did not satisfy requirement | Matcher did not match `argsHash`, scope, project, or tool | Use the requirement's `argsHash` and verify replay/branch scope. |
+| YAML input rejected | CLI JSON helper detected YAML | Use inline JSON or a `.json` file. |
+| Docs build fails after folder refactor | `meta.json` points to missing pages or MDX has invalid syntax | Run `find ...` and `npm run build:web`, then fix the reported page. |
+
+## Quick Diagnostic Commands
+
+```bash
+npx isplay doctor
+npx isplay health
+npx isplay projects get "$ISPLAY_PROJECT_ID"
+npx isplay runs list --project "$ISPLAY_PROJECT_ID"
+npx isplay replay get <replayId>
+```

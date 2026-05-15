@@ -1,0 +1,26 @@
+---
+title: Schemas Reference
+description: Core schema domains exported by @isplay/core.
+---
+
+The source of truth is `@isplay/core`. It exports Zod schemas and inferred TypeScript types for durable objects, request inputs, replay outputs, context inventory, experiments, analysis records, and policies.
+
+<Cards>
+  <Card title="Runtime records" href="/docs/reference/schemas/runtime-records" description="Projects, agents, runs, events, artifacts, statuses, and base record fields." />
+  <Card title="Model, tool, checkpoints" href="/docs/reference/schemas/model-tool-checkpoints" description="Model calls, tool proposals, tool executions, checkpoints, operations, statuses, and side-effect classes." />
+  <Card title="Context inventory" href="/docs/reference/schemas/context-inventory" description="Prompt messages, prompt clauses, context items, inventory, search, and catalog schemas." />
+  <Card title="Replay records" href="/docs/reference/schemas/replay-records" description="Policies, branches, interventions, trials, replays, fixtures, diffs, metrics, attempts, and failures." />
+  <Card title="Experiments" href="/docs/reference/schemas/experiments" description="Checkpoint selectors, patch operations, intervention specs, trial plans, validity gates, hypotheses, and arms." />
+  <Card title="Analysis and effects" href="/docs/reference/schemas/analysis-effects" description="Analysis runs, evidence nodes, evidence edges, effect candidates, statistics, and labels." />
+  <Card title="Capture policy" href="/docs/reference/schemas/capture-policy" description="Capture policy actions, redaction state, rules, and reports." />
+</Cards>
+
+## Shared Record Fields
+
+Most durable records include:
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `id` | string | Prefix-based IDs such as `project_`, `run_`, `event_`, `replay_`. |
+| `createdAt` | string | ISO timestamp. |
+| `metadata` | object | JSON metadata on most domain records. |

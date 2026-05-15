@@ -1,0 +1,50 @@
+---
+title: Integrations
+description: Framework adapters, managed runtime integrations, and shared primitives for capturing agent evidence and enabling replay-aware analysis.
+---
+
+Integrations map framework-specific model, tool, state, and hook surfaces onto the isplay evidence model. Choose the integration that sees the earliest safe boundary in your runtime.
+
+<Cards>
+  <Card title="Adapter kit" href="/docs/integrations/kit" description="Shared primitives for custom frameworks and explicit capture." />
+  <Card title="AI SDK" href="/docs/integrations/ai-sdk" description="Model middleware, stream capture, and tool execute wrappers." />
+  <Card title="Mastra" href="/docs/integrations/mastra" description="Explicit workflow snapshots, agent events, and tool lifecycle helpers." />
+  <Card title="LangGraph" href="/docs/integrations/langgraph" description="Node wrappers, state checkpoints, model wrappers, streams, and tools." />
+  <Card title="Runtime primitives" href="/docs/integrations/runtime" description="Capability manifests, fixture decisions, run registry, and JSON helpers." />
+  <Card title="Managed runtimes" href="/docs/integrations/managed-runtimes" description="How to reason about Codex and Claude Code limitations." />
+  <Card title="Codex" href="/docs/integrations/codex" description="Hook handling, JSONL ingestion, plugin files, and app-server helpers." />
+  <Card title="Claude Code" href="/docs/integrations/claude-code" description="Hook handling, stream-json ingestion, and settings generation." />
+  <Card title="OpenClaw" href="/docs/integrations/openclaw" description="Native plugin hooks with synthetic tool fixture support." />
+</Cards>
+
+## Integration Selection
+
+| If your runtime... | Prefer |
+| --- | --- |
+| Is custom and you own the model/tool calls | `@isplay/adapter-kit` |
+| Uses Vercel AI SDK | `@isplay/adapter-ai-sdk` |
+| Uses Mastra agents or workflows | `@isplay/adapter-mastra` plus explicit SDK calls |
+| Uses LangGraph nodes or streams | `@isplay/adapter-langgraph` |
+| Runs inside Codex | `@isplay/adapter-codex` |
+| Runs inside Claude Code | `@isplay/adapter-claude-code` |
+| Runs inside OpenClaw plugin hooks | `@isplay/adapter-openclaw` |
+
+## Capability Matrix
+
+| Integration | Context inventory | Model capture | Tool capture | Fixture replay | Checkpoints |
+| --- | --- | --- | --- | --- | --- |
+| Kit | explicit | explicit | explicit | app-owned | explicit |
+| AI SDK | request-derived plus annotations | middleware | tool execute wrappers | app-owned | SDK checkpoints |
+| Mastra | annotations and snapshots | manual | helper methods | app-owned | workflow snapshots |
+| LangGraph | node state, messages, stream updates | model wrapper | stream/tool wrapper | app-owned | before/after nodes |
+| Codex | hooks and JSONL | JSONL/proxy-dependent | hooks and JSONL | managed, often post-result | app/worktree-dependent |
+| Claude Code | hooks and stream-json | observability-oriented | hooks | managed, post-tool context | app/worktree-dependent |
+| OpenClaw | native hooks | native input/output hooks | native before/after tool hooks | native synthetic when supported | session/checkpoint hooks |
+
+## Shared Advice
+
+- Initialize `@isplay/sdk` before adapters call `getClient()`.
+- Put capture inside a run context unless the adapter uses `RuntimeRunRegistry`.
+- Capture tool schemas and side-effect classes, not just tool outputs.
+- Drain streams so capture can finish model calls.
+- Do not claim deterministic replay for an adapter that only observes events after execution.

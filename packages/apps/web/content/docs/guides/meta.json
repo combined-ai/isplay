@@ -1,0 +1,25 @@
+{
+  "title": "Guides",
+  "description": "Task-oriented instrumentation, capture, replay, fixture, experiment, and analyst-agent workflows",
+  "pages": [
+    "index",
+    "capture",
+    "instrument-with-sdk",
+    "instrument-custom-framework",
+    "choose-checkpoints",
+    "annotate-context",
+    "classify-tools-and-side-effects",
+    "redact-captured-data",
+    "replay",
+    "create-branches",
+    "fixtures",
+    "resolve-fixtures",
+    "experiments",
+    "interpret-diffs-and-metrics",
+    "write-rca-report",
+    "agent-analysis",
+    "start-analyzing",
+    "build-an-adapter",
+    "production-operations"
+  ]
+}

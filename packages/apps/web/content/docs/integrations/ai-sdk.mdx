@@ -1,0 +1,99 @@
+---
+title: AI SDK Adapter
+description: Capture AI SDK generate and stream calls with middleware, extract tool proposals, and wrap tool execute handlers.
+---
+
+`@isplay/adapter-ai-sdk` provides middleware and tool wrappers for common AI SDK shapes.
+
+## Install for AI SDK
+
+```bash
+npm install isplay @isplay/sdk @isplay/adapter-ai-sdk ai
+```
+
+Initialize the SDK in the process before model calls:
+
+```ts
+import { init } from "@isplay/sdk";
+
+init({
+  projectId: process.env.ISPLAY_PROJECT_ID!,
+  baseUrl: process.env.ISPLAY_API_URL,
+});
+```
+
+## Exports
+
+| Export | Purpose |
+| --- | --- |
+| `createIsplayMiddleware(options?)` | Returns AI SDK middleware with `wrapGenerate` and `wrapStream`. |
+| `instrumentTools(tools)` | Wraps AI SDK `execute` handlers. |
+| `recordToolProposals(modelCallId, result)` | Extracts tool calls from provider result and records proposals. |
+| `extractToolCalls(value)` | Finds common tool-call shapes recursively. |
+| `extractLogprobSignals(value)` | Pulls logprob-like provider metadata. |
+| `inferProvider(model)` | Infers provider metadata from model object when possible. |
+| `inferModel(model)` | Infers model name from model object when possible. |
+
+## Middleware
+
+```ts
+import { createIsplayMiddleware } from "@isplay/adapter-ai-sdk";
+
+const isplayMiddleware = createIsplayMiddleware({
+  provider: "openai",
+  model: "gpt-5.4-mini",
+});
+```
+
+The middleware:
+
+1. Starts a model call with provider, model, operation, params, and settings.
+2. Calls `doGenerate()` or `doStream()`.
+3. Records tool proposals extracted from the result or stream chunks.
+4. Finishes the model call with output, usage, logprobs, or error.
+
+<Callout type="warning" title="Drain streams">
+For `wrapStream`, the model call finishes when the transformed stream flushes. If your application does not consume the stream, capture remains incomplete.
+</Callout>
+
+## Tool Instrumentation
+
+```ts
+import { instrumentTools } from "@isplay/adapter-ai-sdk";
+
+const tools = instrumentTools({
+  lookupClaim: {
+    description: "Read claim details.",
+    inputSchema,
+    __isplaySideEffectClass: "read",
+    __isplaySchemaVersion: "1",
+    __isplayImplementationVersion: "2026-05-24",
+    async execute(args) {
+      return lookupClaim(args.claimId);
+    },
+  },
+});
+```
+
+`instrumentTools()` preserves non-executable tool entries. For tools with `execute`, it wraps execution with adapter-kit `wrapTool()`.
+
+## Captured Evidence
+
+| Evidence | Source |
+| --- | --- |
+| Model provider/model | Adapter options or inference from model object. |
+| Operation | `generate` for `wrapGenerate`, `stream` for `wrapStream`. |
+| Request params | AI SDK middleware `params`. |
+| Response output | Result object, or stream result with captured chunks. |
+| Usage | `result.usage` when present. |
+| Logprobs | Extracted from result or provider metadata. |
+| Tool proposals | Extracted recursively from result shapes. |
+| Tool executions | Wrapped `execute` handlers. |
+
+## Advice
+
+- Pass explicit provider/model options when inference is ambiguous.
+- Add `__isplaySideEffectClass` to every tool that can read, write, or mutate external systems.
+- Capture tool schemas in context through adapter-kit if your tool definitions are not visible in request params.
+- Keep AI SDK calls inside `client.withRun()` or an adapter-managed run context.
+- Use `pause-for-fixture` replay policy for divergent tool calls; do not rerun side-effecting tools implicitly.

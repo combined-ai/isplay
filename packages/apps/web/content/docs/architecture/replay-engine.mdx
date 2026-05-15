@@ -1,0 +1,47 @@
+---
+title: Replay Engine
+description: How replays apply branches, interventions, policies, fixtures, diffs, metrics, and effects.
+---
+
+The replay engine compares an observed base run to a branch. It does not try to be magical; it applies explicit interventions and policies, then records exactly where comparison succeeded, paused, or failed.
+
+## Replay Inputs
+
+| Input | Meaning |
+| --- | --- |
+| Base run events | Observed event stream. |
+| Branch | Checkpoint and interventions. |
+| Policy | Model, tool, drift, max steps, temperature. |
+| Fixtures | Tool outputs available for divergent tool calls. |
+| Artifacts/projections | Payloads and high-level records needed for comparison. |
+
+## Execution Outline
+
+<Steps>
+  <Step>Create a replay record with `queued` or `running` status.</Step>
+  <Step>Load base events and branch interventions.</Step>
+  <Step>Apply intervention transformations where supported.</Step>
+  <Step>When a divergent tool output is needed, ask the fixture gateway for a match.</Step>
+  <Step>If no fixture matches and policy requires one, emit a requirement and pause.</Step>
+  <Step>If replay can continue, produce branch events and finish status.</Step>
+  <Step>Compute trace, tool, state, metric, and effect output.</Step>
+</Steps>
+
+## Fixture Gateway
+
+The fixture gateway matches by project scope, branch/replay scope, tool name, and matcher data such as `argsHash`. A missing fixture becomes a `FixtureRequirement` rather than an implicit live call.
+
+## Unsupported Live Policies
+
+The local engine fails fast for live model/tool policies when no executor is wired. This is intentional. Live replay without explicit executors and safety controls would hide uncertainty and risk side effects.
+
+## Outputs
+
+| Output | Purpose |
+| --- | --- |
+| Replay record | Status, policy, comparability, first divergence, pause/error details. |
+| Replay events | Branch event stream or fallback base events. |
+| Requirements | Open fixture work. |
+| Diffs | Trace, tool, state, output, metric, or causal comparisons. |
+| Metrics | Numeric comparison signals. |
+| Effects | Ranked explanation candidates. |

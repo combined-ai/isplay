@@ -1,0 +1,12 @@
+{
+  "title": "Tutorials",
+  "description": "End-to-end learning paths for first capture, first replay, experiments, demos, and agent-led analysis",
+  "pages": [
+    "index",
+    "first-captured-run",
+    "replay-a-counterfactual",
+    "run-a-hypothesis-batch",
+    "mastra-claims-demo",
+    "agent-led-analysis"
+  ]
+}

@@ -1,0 +1,118 @@
+---
+title: OpenClaw Adapter
+description: Native OpenClaw plugin hooks for context capture, model I/O, tool lifecycle capture, fixture decisions, and synthetic tool outputs.
+---
+
+`@isplay/adapter-openclaw` is the strongest current runtime adapter because OpenClaw plugin hooks can expose prompt/model/tool boundaries before execution.
+
+## Install for OpenClaw
+
+```bash
+npm install isplay @isplay/sdk @isplay/adapter-openclaw
+```
+
+## Exports
+
+| Export | Purpose |
+| --- | --- |
+| `createOpenClawAdapter(options?)` | Returns adapter kit plus capabilities, `register(api)`, and `handleHook(name, event)`. |
+| `registerIsplayOpenClaw(api, adapter?)` | Registers known OpenClaw hooks at priority `100`. |
+| `openClawCapabilities` | Capability manifest. |
+| `recordOpenClawContext(client, event, modelCallId?)` | Captures system prompt, messages, and settings as context annotations. |
+
+## Setup
+
+```ts
+import { init } from "@isplay/sdk";
+import { createOpenClawAdapter } from "@isplay/adapter-openclaw";
+
+init({
+  projectId: process.env.ISPLAY_PROJECT_ID!,
+  baseUrl: process.env.ISPLAY_API_URL,
+});
+
+const isplay = createOpenClawAdapter({
+  toolResultMode: "native_synthetic",
+  runKey: (event) => String(event.runId ?? event.sessionId ?? event.sessionKey),
+});
+
+export default function register(api) {
+  isplay.register(api);
+}
+```
+
+## Registered Hooks
+
+`registerIsplayOpenClaw()` registers:
+
+```text
+session_start
+before_model_resolve
+before_prompt_build
+before_agent_run
+llm_input
+llm_output
+before_tool_call
+after_tool_call
+tool_result_persist
+before_compaction
+after_compaction
+agent_end
+session_end
+```
+
+## Captured Behavior
+
+| Hook | Behavior |
+| --- | --- |
+| `llm_input` | Starts model call, records provider/model/settings/input, and records context inventory. |
+| `llm_output` | Finishes model call with output, usage, or error. |
+| `before_tool_call` | Records proposal and tool start, consults fixture gateway, can block or inject synthetic result. |
+| `after_tool_call` | Finishes tool execution with result or error. |
+| `before_prompt_build` | Can call `contextProvider` to contribute prompt context. |
+| `agent_end` / `session_end` | Finishes runtime run as `ok` or `error`. |
+| other hooks | Recorded as `openclaw.<hook>` events. |
+
+## Synthetic Fixture Mode
+
+When `toolResultMode: "native_synthetic"` and the fixture gateway returns `inject`, `before_tool_call` can return:
+
+```json
+{
+  "result": { "fixture": "output" },
+  "skipExecution": true,
+  "provenance": "isplay_fixture"
+}
+```
+
+Only use this mode with an OpenClaw build that honors `skipExecution` and returns the synthetic output without running the real tool.
+
+## Context Capture
+
+`recordOpenClawContext()` captures:
+
+- `systemPrompt` as `system_message`.
+- `messages` as user, assistant, or tool context items.
+- model settings as `model_setting`.
+
+These annotations are linked to the model call when available.
+
+## Capabilities
+
+OpenClaw manifest status is `native_full`, with a caveat that model replay still needs an isplay provider proxy or synthetic model hook.
+
+| Primitive | Status | Mode |
+| --- | --- | --- |
+| Context inventory | `native_full` | `native_replace` |
+| Prompt patch | `native_full` | `native_replace` |
+| Model capture | `native_full` | `observe_only` |
+| Model replay | `managed_replay` | `proxy_replace` |
+| Tool capture | `native_full` | `observe_only` |
+| Tool fixture replay | `managed_replay` | `native_replace` |
+| Checkpointing | `managed_replay` | `observe_only` |
+
+## Warnings
+
+- Plugin-only mode cannot undo side effects from tools already executed.
+- `native_synthetic` requires runtime support for synthetic before-tool results.
+- Session transcripts and compaction hooks support sidecar checkpoints, but formal fork APIs remain runtime-owned.

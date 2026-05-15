@@ -1,0 +1,54 @@
+---
+title: Checkpoints
+description: State snapshots, branch points, hashes, schema metadata, and placement strategy.
+---
+
+A checkpoint is a named state snapshot that replay can use as a branch point. It is the record that says: "from this moment, with this state, test a controlled change."
+
+## Checkpoint Fields
+
+| Field | Why it matters |
+| --- | --- |
+| `name` | Human-readable selector such as `before-tool-choice` or `before-final-answer`. |
+| `parentEventId` | Event after which this state became true. |
+| `stateArtifactId` | Redacted JSON state payload. |
+| `stateHash` | Stable comparison key for stale-checks and state diffs. |
+| `schemaName` / `schemaVersion` | State shape compatibility. |
+| `codeVersion` | Code compatibility for replay across releases. |
+| `packageVersions` | Framework and package version context. |
+
+## Placement Strategy
+
+Good checkpoint placement makes replay narrow. Poor placement forces broad, ambiguous branches.
+
+| Place checkpoint | Use it for |
+| --- | --- |
+| After request normalization | Testing input interpretation. |
+| Before retrieval | Testing retrieval query, memory, or prompt clauses. |
+| After retrieval | Testing model decision with fixed context. |
+| Before tool proposal | Testing tool selection or arguments. |
+| After tool result | Testing final reasoning with fixed tool evidence. |
+| Before external mutation | Testing safety gates before side effects. |
+| Before final answer | Testing output wording or final policy application. |
+
+## Naming Conventions
+
+Use stable, action-oriented names:
+
+```text
+after-request-normalization
+before-retrieval
+after-retrieval
+before-tool-choice
+before-external-mutation
+before-final-answer
+```
+
+Avoid names like `checkpoint1` or `middle`. They make later branch creation harder for humans and analyst agents.
+
+## Practical Caveats
+
+- A checkpoint is only useful if the stored state is enough to resume or compare.
+- A checkpoint hash is not a semantic proof. It only says the serialized captured state matched.
+- Schema and code versions are optional in the current schema, but they are important when replay crosses deployments.
+- Managed runtimes may expose checkpoint-like hooks differently. Check the integration's capability page.

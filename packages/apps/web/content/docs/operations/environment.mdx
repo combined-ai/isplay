@@ -1,0 +1,37 @@
+---
+title: Environment
+description: Environment variables used by server, CLI, SDK, adapters, and fixture commands.
+---
+
+| Variable | Used by | Default | Notes |
+| --- | --- | --- | --- |
+| `DATABASE_URL` | Server, CLI `start` | none | Required for direct server startup. When unset, CLI `start` uses Docker Postgres. |
+| `PORT` | Direct server startup | `7373` | CLI `start` uses `--port`; direct `startServer()` reads `PORT`. |
+| `ISPLAY_ARTIFACTS_DIR` | Server | `.isplay/artifacts` | Root for JSON artifact payload files. |
+| `ISPLAY_API_URL` | CLI, API client, SDK, adapters | `http://127.0.0.1:7373` | Export it in every shell or process that talks to the API. |
+| `ISPLAY_PROJECT_ID` | CLI, SDK `getClient()` | none | Used when `--project` is omitted or `getClient()` lazy-initializes. |
+| `USER` | CLI fixtures | OS user | Stored as fixture author by `fixtures add`. |
+
+## Recommended Local Shell
+
+```bash
+export ISPLAY_API_URL=http://127.0.0.1:7373
+export ISPLAY_PROJECT_ID=project_...
+```
+
+## Recommended Server Environment
+
+```bash
+export DATABASE_URL=postgres://...
+export PORT=7373
+export ISPLAY_ARTIFACTS_DIR=/var/lib/isplay/artifacts
+```
+
+## Debugging
+
+```bash
+npx isplay doctor
+npx isplay health
+```
+
+If the CLI works in one terminal but not another, compare `ISPLAY_API_URL` and `ISPLAY_PROJECT_ID`.

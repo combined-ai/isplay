@@ -1,0 +1,38 @@
+---
+title: Adapter Kit Example
+description: Wrap a custom tool and record framework events.
+---
+
+```ts
+import { init } from "@isplay/sdk";
+import { createAdapterKit } from "@isplay/adapter-kit";
+
+const client = init({
+  projectId: process.env.ISPLAY_PROJECT_ID!,
+  baseUrl: process.env.ISPLAY_API_URL,
+  serviceName: "custom-framework",
+});
+
+const kit = createAdapterKit(client);
+
+const lookupClaim = kit.wrapTool(
+  {
+    name: "lookup_claim",
+    sideEffectClass: "read",
+    schemaVersion: "1",
+  },
+  async (args: { claimId: string }) => {
+    return { claimId: args.claimId, eligible: true };
+  },
+);
+
+await client.withRun({ name: "custom-framework-run" }, async () => {
+  await kit.recordFrameworkEvent({
+    framework: "custom",
+    type: "step.started",
+    payload: { step: "lookup" },
+  });
+  await client.checkpoint("before-lookup", { step: "lookup" });
+  await lookupClaim({ claimId: "C-104" });
+});
+```

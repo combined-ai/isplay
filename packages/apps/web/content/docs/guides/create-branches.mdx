@@ -1,0 +1,67 @@
+---
+title: Create Branches
+description: Turn one hypothesis into one branch and one or more targeted interventions.
+---
+
+Branch creation is the moment a possible cause becomes a testable claim. Keep branches narrow.
+
+## 1. Select A Checkpoint
+
+```bash
+npx isplay runs checkpoints <runId>
+```
+
+Choose the earliest checkpoint after irrelevant setup and before the suspected cause.
+
+## 2. Create The Branch
+
+```bash
+npx isplay branch create \
+  --from <runId> \
+  --checkpoint <checkpointId> \
+  --project "$ISPLAY_PROJECT_ID" \
+  --name "mask risky policy clause"
+```
+
+The branch inherits or stores replay policy. You can override policy when you run replay.
+
+## 3. Add The Intervention
+
+```bash
+npx isplay branch intervene <branchId> \
+  --project "$ISPLAY_PROJECT_ID" \
+  --kind prompt_clause_mask \
+  --target <target-id> \
+  --description "Remove the clause that permits auto-refunds"
+```
+
+For JSON patches:
+
+```bash
+npx isplay branch intervene <branchId> \
+  --project "$ISPLAY_PROJECT_ID" \
+  --kind state_patch \
+  --target state.claim.status \
+  --patch patch.json \
+  --description "Set claim status to approved before decision"
+```
+
+## Target Selection
+
+| Target kind | Prefer when |
+| --- | --- |
+| Context item ID | You are testing a prompt, retrieval, memory, state, schema, or setting item. |
+| Event ID | You are testing a specific observed event. |
+| `refId` | You want the projection record linked to an event. |
+| Tool name | You are patching any call to one tool. |
+| Model call ID | You are patching one model boundary. |
+| JSON pointer | You know the exact artifact/state path. |
+
+## Review Before Replay
+
+```bash
+npx isplay branch get <branchId>
+npx isplay branch interventions <branchId>
+```
+
+If the branch contains multiple unrelated interventions, split it before replay.

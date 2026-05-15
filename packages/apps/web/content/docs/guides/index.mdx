@@ -1,0 +1,56 @@
+---
+title: Guides
+description: Practical, task-oriented capture, replay, fixture, experiment, integration, and operations workflows.
+---
+
+Guides answer "how do I do this specific thing?" Start here after the quickstart when you already know the outcome you want: instrument an agent, choose checkpoints, redact captured data, replay a counterfactual, resolve fixtures, run a hypothesis batch, or write an RCA report.
+
+<Cards>
+  <Card title="Capture" href="/docs/guides/capture" description="Instrument runs, context, model calls, tools, artifacts, checkpoints, and side effects." />
+  <Card title="SDK instrumentation" href="/docs/guides/instrument-with-sdk" description="Use @isplay/sdk directly when you own the execution path." />
+  <Card title="Custom framework instrumentation" href="/docs/guides/instrument-custom-framework" description="Use adapter-kit patterns for frameworks without a dedicated adapter." />
+  <Card title="Checkpoint strategy" href="/docs/guides/choose-checkpoints" description="Place checkpoints so branches are meaningful and replayable." />
+  <Card title="Context annotation" href="/docs/guides/annotate-context" description="Capture prompts, retrieval, memory, state, tool schemas, and settings as searchable context." />
+  <Card title="Tool side effects" href="/docs/guides/classify-tools-and-side-effects" description="Classify tool risk before replay and fixture work." />
+  <Card title="Redaction" href="/docs/guides/redact-captured-data" description="Capture useful evidence without leaking private fields." />
+  <Card title="Replay" href="/docs/guides/replay" description="Create branches, interventions, replay jobs, diffs, metrics, and effects." />
+  <Card title="Create branches" href="/docs/guides/create-branches" description="Turn one hypothesis into one targeted intervention." />
+  <Card title="Fixtures" href="/docs/guides/fixtures" description="Resolve missing tool outputs while preserving provenance and safety." />
+  <Card title="Experiments" href="/docs/guides/experiments" description="Create hypothesis batches, run trials, read statistics, and rank effects." />
+  <Card title="Interpret output" href="/docs/guides/interpret-diffs-and-metrics" description="Read diffs, metrics, comparability, effects, and low-N caveats." />
+  <Card title="RCA reports" href="/docs/guides/write-rca-report" description="Write bounded reports that separate facts, tested changes, and uncertainty." />
+  <Card title="Agent analysis" href="/docs/guides/agent-analysis" description="Use the isplay-analysis skill to run bounded evidence investigations." />
+  <Card title="Build an adapter" href="/docs/guides/build-an-adapter" description="Add capture and replay support for a new framework or runtime." />
+  <Card title="Production operations" href="/docs/guides/production-operations" description="Run isplay with external Postgres, durable artifacts, and explicit safety policies." />
+</Cards>
+
+## Default RCA Loop
+
+<Steps>
+  <Step>Confirm `ISPLAY_API_URL`, `ISPLAY_PROJECT_ID`, and the base `runId`.</Step>
+  <Step>Run `isplay discover run <runId>` and read the catalog, context summary, and context items.</Step>
+  <Step>List checkpoints and choose the earliest checkpoint that still contains enough state to replay the suspected decision.</Step>
+  <Step>Write a factual baseline narrative: task, prompts, settings, tools, retrieval, memory, key tool outputs, and final behavior.</Step>
+  <Step>Convert each possible cause into one intervention. Avoid broad bundles.</Step>
+  <Step>Replay or run a hypothesis batch with `recorded-only` model policy and `pause-for-fixture` tool policy.</Step>
+  <Step>Resolve fixture requirements only with explicit provenance and scope.</Step>
+  <Step>Report first divergence, metrics, effects, fixture dependency, comparability, validity labels, and next experiments.</Step>
+</Steps>
+
+## Choosing A Workflow
+
+| Situation | Use | Why |
+| --- | --- | --- |
+| You have no run yet | Capture workflow | A replay investigation is only as good as the baseline evidence. |
+| You own the app code | SDK or adapter-kit guide | Capture can be precise and low-noise. |
+| You have one suspected cause | Branch and replay | Fastest way to isolate one controlled change. |
+| Replay paused | Fixture workflow | Tool side effects stay explicit and auditable. |
+| You have several possible causes | Experiment workflow | One batch can materialize branches, trials, statistics, and ranked effects. |
+| You want the agent to drive | Agent analysis workflow | The skill enforces discovery, hypothesis discipline, and bounded reporting. |
+| You need a final RCA | Report guide | Gives the evidence wording and structure. |
+
+## Reporting Rule
+
+<Callout type="info" title="Evidence wording">
+Use "observed" for base trace facts, "under replay" for recorded replay results, "under fixture" for analyst/simulator/AI fixture results, and "unsupported" when evidence is missing. Avoid saying a cause is proven.
+</Callout>

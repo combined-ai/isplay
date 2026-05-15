@@ -1,0 +1,39 @@
+---
+title: Server And Store
+description: Hono API, OpenAPI routes, Postgres tables, JSONB projections, artifacts, and migrations.
+---
+
+The server is a Hono app with zod-openapi route definitions. It publishes OpenAPI at `/openapi.json` and stores data through `@isplay/postgres`.
+
+## Server Responsibilities
+
+| Responsibility | Notes |
+| --- | --- |
+| Validate input | Zod schemas from `@isplay/core` and route-specific request schemas. |
+| Enforce path/body ID consistency | Prevents writing a record under the wrong run, branch, or replay. |
+| Store artifacts | Writes JSON payloads to the artifact root and metadata to Postgres. |
+| Build catalogs/context | Reconstructs inventory and observed capabilities from records. |
+| Run replay/experiments | Current implementation executes synchronously in route handlers/runners. |
+| Return OpenAPI | `/openapi.json` describes the HTTP surface. |
+
+## Store Layout
+
+| Table | Role |
+| --- | --- |
+| `projects` | Project root records. |
+| `runs` | Captured execution records. |
+| `events` | Ordered events with unique `(run_id, seq)`. |
+| `artifacts` | Artifact metadata and object keys. |
+| `projections` | JSONB records for model calls, tools, branches, replays, fixtures, experiments, context, analysis, and derived outputs. |
+
+## Artifacts
+
+Artifacts are payload files under `.isplay/artifacts` or `ISPLAY_ARTIFACTS_DIR`. Paths are validated to stay inside the artifact root. The server records SHA-256, size, MIME type, compression marker, redaction state, and metadata.
+
+## Migrations
+
+`isplay start` runs migrations automatically after it starts or connects to Postgres. Direct server deployments should run the same migration path before serving capture traffic.
+
+## Error Handling
+
+The API returns structured errors with code, message, details, request ID, retryability, and recoverability. See [Errors](/docs/reference/errors) for the exact shape.

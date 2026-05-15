@@ -1,0 +1,77 @@
+---
+title: Metrics, Diffs, And Effects Reference
+description: Replay comparison outputs, metrics, effect statuses, effect types, and validity labels.
+---
+
+## Diff Kinds
+
+```text
+output
+trace
+tool
+state
+timeline
+metric
+causal
+```
+
+Each diff has `projectId`, `replayId`, `kind`, `comparability`, `patch`, optional `summary`, and metadata.
+
+## Comparability
+
+```text
+exact
+aligned
+diverged_but_comparable
+non_comparable
+```
+
+## Metrics
+
+| Metric | Meaning |
+| --- | --- |
+| `first_divergence_step` | First changed event index; `-1` means none. |
+| `tool_sequence_distance` | Normalized distance between tool event sequences. |
+| `fixture_dependency_count` | Number of fixture events used. |
+| `tool_argument_changed` | `1` when tool args or arg refs changed. |
+
+Metric provenance values:
+
+```text
+deterministic
+analyst_annotation
+simulator_derived
+provider_signal
+model_judged
+```
+
+## Effect Statuses
+
+```text
+supported
+not_supported
+inconclusive
+invalid
+```
+
+## Effect Types
+
+```text
+tool_args_changed
+output_changed
+fixture_sensitive
+early_divergence
+non_comparable
+no_effect
+```
+
+## Validity Labels
+
+```text
+confirmed_by_replay
+sensitive_to_fixture
+model_nondeterministic
+diverged_but_comparable
+non_comparable
+unsupported
+```

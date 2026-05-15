@@ -1,0 +1,155 @@
+---
+title: SDK Reference
+description: Initialization, run context, capture lifecycle, surface methods, API client behavior, and adapter interaction.
+---
+
+`@isplay/sdk` is the main programmatic interface for capture and API access.
+
+## Exports
+
+```ts
+import {
+  IsplaySdk,
+  init,
+  getClient,
+  currentRunId,
+  type IsplaySdkOptions,
+  type ContextAnnotationInput,
+} from "@isplay/sdk";
+```
+
+| Export | Purpose |
+| --- | --- |
+| `IsplaySdk` | Class combining capture methods and API surface convenience methods. |
+| `init(options)` | Creates and stores the process-level active client. |
+| `getClient()` | Returns active client or lazily creates one from `ISPLAY_PROJECT_ID`. |
+| `currentRunId()` | Reads the current async run context. |
+| `IsplaySdkOptions` | API client options plus `projectId`, `serviceName`, and `capturePolicy`. |
+| `ContextAnnotationInput` | Input shape for `annotateContext()`. |
+
+## Options
+
+```ts
+const client = init({
+  projectId: process.env.ISPLAY_PROJECT_ID!,
+  baseUrl: process.env.ISPLAY_API_URL,
+  headers: { authorization: `Bearer ${token}` },
+  fetch: customFetch,
+  serviceName: "claims-agent",
+  capturePolicy: {
+    defaultAction: "capture",
+    rules: [{ path: "customerEmail", action: "mask" }],
+  },
+});
+```
+
+`baseUrl`, `headers`, and `fetch` are passed to `@isplay/api-client`. If `baseUrl` is omitted, the client uses `ISPLAY_API_URL` or `http://127.0.0.1:7373`.
+
+## Run Context Methods
+
+| Method | Returns | Notes |
+| --- | --- | --- |
+| `withRun(input, fn)` | callback result | Creates run, installs context, patches run status. |
+| `withRunContext({ runId, projectId? }, fn)` | callback result | Uses an existing run. Managed adapters use this. |
+| `recordEvent(type, data, refId?)` | event or `undefined` | No-ops outside run context. |
+| `uploadArtifact(kind, payload, metadata?)` | artifact | Can run inside or outside run context. |
+| `annotateContext(input)` | event | Throws outside run context. |
+| `checkpoint(name, state, options?)` | checkpoint | Throws outside run context. |
+
+## Model And Tool Methods
+
+| Method | Purpose |
+| --- | --- |
+| `startModelCall(input)` | Create model record, optional request artifact, and `model_call.started` event. |
+| `finishModelCall(modelCall, input)` | Add response artifact, usage, logprobs, error/status, and `model_call.finished` event. |
+| `recordToolProposal(input)` | Capture proposed tool call, args artifact/hash, and `tool.proposed` event. |
+| `startToolExecution(input)` | Capture actual tool start, args artifact/hash, side-effect class, and `tool.started` event. |
+| `finishToolExecution(execution, input)` | Capture output or error, result artifact/hash, and `tool.finished` event. |
+
+Most model/tool methods throw outside `withRun()` or `withRunContext()`.
+
+## Surface API Methods
+
+`IsplaySdk` mirrors `IsplayApiClient` for convenience:
+
+| Group | Methods |
+| --- | --- |
+| Health/jobs | `health`, `getJobEvents` |
+| Projects | `createProject`, `getProject`, `getProjectCatalog` |
+| Runs | `createRun`, `getRun`, `listRuns`, `patchRun`, `appendEvents`, `getEvents` |
+| Capture records | `createArtifact`, `getArtifact`, `createCheckpoint`, `listCheckpoints`, `storeModelCall`, `storeToolProposal`, `storeToolExecution` |
+| Branches | `createBranch`, `getBranch`, `createIntervention`, `listInterventions` |
+| Replays | `createReplay`, `getReplay`, `getReplayEvents`, `getReplayDiff`, `getReplayMetrics`, `getFixtureRequirements`, `addToolFixture`, `resumeReplay`, `getReplayEffects` |
+| Context | `getRunContextInventory`, `getModelCallContextInventory`, `getCheckpointContextInventory`, `searchContext`, `getRunCatalog` |
+| Experiments | `createExperiment`, `createHypothesisBatch`, `getExperiment`, `runExperiment`, `getExperimentResults`, `getExperimentRequirements`, `getExperimentTrialMatrix`, `getExperimentStatistics`, `getExperimentArmComparison`, `getExperimentEffects` |
+| Analysis | `createAnalysisRun`, `getAnalysisRun`, `rankEffects` |
+
+## API Client
+
+`@isplay/api-client` exports:
+
+```ts
+import {
+  IsplayApiClient,
+  IsplayApiError,
+  type ApiClientOptions,
+} from "@isplay/api-client";
+```
+
+`IsplayApiClient` uses `openapi-fetch`, accepts `baseUrl`, custom `fetch`, and headers, and throws `IsplayApiError` with `status` and `body` for API errors.
+
+## Example: Full Capture
+
+```ts
+await client.withRun({ name: "support-agent" }, async () => {
+  await client.annotateContext({
+    kind: "system_message",
+    path: "prompt.system",
+    value: "Prefer policy-grounded answers.",
+  });
+
+  await client.checkpoint("before-tool", { stage: "lookup" });
+
+  const call = await client.startModelCall({
+    provider: "openai",
+    model: "gpt-5.4-mini",
+    operation: "generate",
+    params: { prompt: "Look up ticket T-42" },
+    settings: { temperature: 0.2 },
+  });
+
+  const proposal = await client.recordToolProposal({
+    modelCallId: call.id,
+    toolCallId: "call_lookup",
+    toolName: "lookup_ticket",
+    args: { ticketId: "T-42" },
+  });
+
+  const execution = await client.startToolExecution({
+    proposalId: proposal.id,
+    toolCallId: proposal.toolCallId,
+    toolName: "lookup_ticket",
+    args: { ticketId: "T-42" },
+    sideEffectClass: "read",
+  });
+
+  await client.finishToolExecution(execution, {
+    output: { plan: "refund" },
+  });
+
+  await client.finishModelCall(call, {
+    output: { text: "Refund approved." },
+    usage: { inputTokens: 1200, outputTokens: 80 },
+  });
+});
+```
+
+## Adapter Interaction
+
+Adapters call the same SDK methods. The most important shared rules:
+
+- Initialize `init()` before adapter code calls `getClient()`, or set `ISPLAY_PROJECT_ID`.
+- Run capture code inside `withRun()` unless the adapter owns a `RuntimeRunRegistry`.
+- Drain streams so stream-based adapters can finish model calls.
+- Override side-effect class for important tools; runtime name heuristics are a fallback.
+- Annotated values from `adapter-kit` keep their runtime value; use `valueOf()` when passing them to frameworks that do not expect marker objects.

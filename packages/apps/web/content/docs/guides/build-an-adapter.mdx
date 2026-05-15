@@ -1,0 +1,66 @@
+---
+title: Build An Adapter
+description: Add capture and replay support for a new framework or runtime.
+---
+
+Build an adapter when a framework has recurring boundaries that should be captured consistently: model calls, tool calls, graph nodes, workflow steps, state snapshots, streams, or runtime hooks.
+
+## Start With Capability Mapping
+
+| Boundary | Questions |
+| --- | --- |
+| Run lifecycle | Can you create or identify one execution boundary? |
+| Context | Can you access prompts, retrieval, memory, state, schemas, and settings? |
+| Model calls | Can you see request, response, streaming chunks, usage, and errors? |
+| Tool calls | Can you see proposed args before execution and results after execution? |
+| Checkpoints | Can you snapshot state before branchable decisions? |
+| Replay hooks | Can you replace, block, or only observe model/tool outputs? |
+| Side effects | Can you classify or intercept risky tools before execution? |
+
+## Reuse Adapter Kit
+
+Most adapters should use `@isplay/adapter-kit` for shared behavior:
+
+- Annotations.
+- Model call capture.
+- Tool wrapping.
+- Framework event recording.
+- Side-effect metadata.
+
+Dedicated adapters should avoid inventing a separate capture vocabulary unless the runtime truly requires it.
+
+## Export Shape
+
+Keep the package small:
+
+```ts
+export function createFrameworkAdapter(options: FrameworkAdapterOptions) {
+  // initialize SDK or accept an existing client
+  // return wrappers/hooks the app can install
+}
+```
+
+Document:
+
+- Required peer dependencies.
+- Setup order.
+- What is automatic versus explicit.
+- Whether streams must be drained.
+- Replay capability level.
+- Known runtime caveats.
+
+## Test Matrix
+
+| Test | Why |
+| --- | --- |
+| Captures run start/finish | Lifecycle integrity. |
+| Captures model success and error | Model boundary correctness. |
+| Captures tool proposal/execution | Intent and side effect separation. |
+| Captures streaming finish | Prevents missing model output. |
+| Captures checkpoint | Replay readiness. |
+| Applies capture policy | Redaction safety. |
+| Handles no active run | Avoids accidental crashes or silent bad records. |
+
+## Capability Manifest
+
+If the runtime supports managed replay, expose a capability manifest. It should say whether each boundary is `native_replace`, `proxy_replace`, `post_result_replace`, `block_only`, or `observe_only`.

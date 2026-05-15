@@ -1,0 +1,17 @@
+---
+title: OpenClaw Example
+description: Register the OpenClaw adapter and handle native plugin hooks.
+---
+
+```ts
+import { createOpenClawAdapter, registerIsplayOpenClaw } from "@isplay/adapter-openclaw";
+
+const adapter = createOpenClawAdapter({
+  projectId: process.env.ISPLAY_PROJECT_ID!,
+  baseUrl: process.env.ISPLAY_API_URL,
+});
+
+registerIsplayOpenClaw(openclawApi, adapter);
+```
+
+OpenClaw is the strongest current managed runtime integration when the runtime honors pre-execution hook decisions. Use capability output to distinguish native replacement from observe-only capture.

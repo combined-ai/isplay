@@ -1,0 +1,123 @@
+---
+title: Mastra Adapter
+description: Explicit Mastra instrumentation for workflow snapshots, agent events, model calls, tool lifecycles, and the claims demo.
+---
+
+`@isplay/adapter-mastra` is a helper adapter. It does not automatically wrap `Agent.generate`. You should explicitly capture model calls, step events, tools, and checkpoints.
+
+## Install for Mastra
+
+```bash
+npm install isplay @isplay/sdk @isplay/adapter-mastra @mastra/core mastra
+```
+
+## Exports
+
+```ts
+import { createMastraIsplayAdapter } from "@isplay/adapter-mastra";
+```
+
+`createMastraIsplayAdapter()` returns:
+
+| Member | Purpose |
+| --- | --- |
+| `annotations.systemPrompt` | Mark system prompt context. |
+| `annotations.promptClause` | Mark one prompt clause. |
+| `annotations.retrievalChunk` | Mark retrieved context. |
+| `annotations.memoryItem` | Mark memory. |
+| `annotations.stateField` | Mark state as `state_only`. |
+| `recordWorkflowSnapshot(name, snapshot, metadata?)` | Create a checkpoint with schema `mastra.workflow.snapshot`. |
+| `recordToolStart(toolName, args, options?)` | Start a tool execution. |
+| `recordToolEnd(execution, output)` | Finish tool execution with output. |
+| `recordToolError(execution, error)` | Finish tool execution with error. |
+| `recordAgentEvent(type, data)` | Record custom event `mastra.<type>`. |
+| `wrapTool(toolName, handler, options?)` | Wrap a Mastra tool handler. |
+
+## Recommended Pattern
+
+```ts
+import { init } from "@isplay/sdk";
+import { createMastraIsplayAdapter } from "@isplay/adapter-mastra";
+
+const client = init({
+  projectId: process.env.ISPLAY_PROJECT_ID!,
+  baseUrl: process.env.ISPLAY_API_URL,
+  serviceName: "mastra-claims-demo",
+});
+
+const mastra = createMastraIsplayAdapter();
+
+await client.withRun({ name: "claim-C-104" }, async () => {
+  await client.checkpoint("claim.input", claim, {
+    schemaName: "mastra.claim",
+    schemaVersion: "1",
+  });
+
+  const modelCall = await client.startModelCall({
+    provider: "vercel-ai-gateway",
+    model: process.env.MASTRA_CLAIMS_MODEL ?? "vercel/openai/gpt-5.4-mini",
+    operation: "generate",
+    params: { claimId: claim.id, prompt },
+    settings: { temperature: 0.2, maxSteps: 8 },
+  });
+
+  const response = await claimsAgent.generate(prompt, {
+    maxSteps: 8,
+    onStepFinish: async (step) => {
+      await mastra.recordAgentEvent("step.finished", step);
+      for (const call of step.toolCalls ?? []) {
+        await client.recordToolProposal({
+          toolCallId: call.toolCallId,
+          toolName: call.toolName ?? "unknown-tool",
+          args: call.args,
+        });
+      }
+    },
+  });
+
+  await client.finishModelCall(modelCall, {
+    output: { text: response.text, finishReason: response.finishReason },
+    usage: response.usage,
+  });
+
+  await client.checkpoint("claim.final", { text: response.text });
+});
+```
+
+## Tool Capture
+
+Wrap Mastra tools or record tool lifecycle manually:
+
+```ts
+const execution = await mastra.recordToolStart("risk-signals", args, {
+  sideEffectClass: "read",
+});
+
+try {
+  const output = await riskSignals(args);
+  await mastra.recordToolEnd(execution, output);
+  return output;
+} catch (error) {
+  await mastra.recordToolError(execution, error);
+  throw error;
+}
+```
+
+## Demo
+
+The repo includes `resources/examples/mastra-claims-agent`.
+
+```bash
+npm run build
+npm run dev:cli -- start
+AI_GATEWAY_API_KEY=... npm run demo:mastra-claims
+```
+
+The demo creates or uses a project, runs several claims scenarios, captures model and tool evidence, creates a hypothesis batch, resolves a branch-scoped fixture, reruns an experiment, and writes `.isplay/mastra-claims-analysis.json`.
+
+## Gotchas
+
+- The `serviceName` option on `createMastraIsplayAdapter` is declared but currently unused.
+- The adapter does not transparently wrap `Agent.generate`; capture model calls explicitly.
+- Use `onStepFinish` to capture tool proposals and step summaries.
+- Capture checkpoints before and after important workflow phases.

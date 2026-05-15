@@ -1,0 +1,59 @@
+---
+title: Choose Checkpoints
+description: Place branch points so replay can isolate useful hypotheses.
+---
+
+Checkpoint placement is one of the highest-leverage instrumentation decisions. A checkpoint should be early enough to test the suspected cause and late enough that replay does not drift through unrelated setup.
+
+## Default Checkpoint Set
+
+For most agents, start with these:
+
+| Name | Place it | Tests enabled |
+| --- | --- | --- |
+| `after-request-normalization` | After parsing the user task | Input interpretation. |
+| `before-retrieval` | Before search/RAG/memory lookup | Retrieval query and memory selection. |
+| `after-retrieval` | After context is assembled | Prompt and context causal tests. |
+| `before-tool-choice` | Before model chooses tools | Tool selection and tool args. |
+| `before-external-mutation` | Before write/send/delete/deploy actions | Safety and approval paths. |
+| `before-final-answer` | Before final model response | Final wording and policy application. |
+
+## What To Store
+
+Store enough state to compare or resume:
+
+- Task input and normalized task.
+- Current messages or prompt handles.
+- Retrieval result IDs and source hashes.
+- Memory keys used.
+- Domain state fields that affect branching.
+- Pending tool calls or tool summaries.
+- Version metadata.
+
+Avoid huge opaque objects when a smaller state shape is enough. Artifacts can hold full payloads, but the checkpoint should still be understandable.
+
+## Naming And Versioning
+
+```ts
+await client.checkpoint("before-tool-choice", state, {
+  schemaName: "ClaimAgentState",
+  schemaVersion: "3",
+  codeVersion: process.env.GIT_SHA,
+  packageVersions: {
+    "@isplay/sdk": "0.2.0",
+    "@mastra/core": "x.y.z",
+  },
+});
+```
+
+Use stable names because CLI and experiment specs can select checkpoints by name.
+
+## Bad Checkpoint Patterns
+
+| Pattern | Problem |
+| --- | --- |
+| Only one checkpoint at run end | Too late to test causes. |
+| Checkpoint before every tiny function | Too noisy for analysts. |
+| Opaque serialized process object | Hard to compare, fragile across code versions. |
+| No schema/version metadata | Replay across releases becomes guesswork. |
+| Names like `cp1` or `state` | Hard to select reliably. |

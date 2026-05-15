@@ -1,0 +1,41 @@
+---
+title: Production Hardening
+description: Practical steps for running isplay with durable infrastructure and safer capture defaults.
+---
+
+Production use starts with explicit infrastructure and conservative replay policy.
+
+## Infrastructure Checklist
+
+| Area | Recommendation |
+| --- | --- |
+| Database | Use managed or self-hosted Postgres through `DATABASE_URL`. |
+| Artifacts | Use durable mounted storage through `ISPLAY_ARTIFACTS_DIR`. |
+| API URL | Set stable `ISPLAY_API_URL` for every capture, CLI, SDK, and adapter process. |
+| Projects | Separate apps, services, tenants, or investigation boundaries into projects. |
+| Backups | Back up Postgres and artifact root together. |
+| Redaction | Configure capture policy at the app boundary. |
+| Replay | Default to recorded model and pause-for-fixture tool policies. |
+
+## Safety Defaults
+
+```json
+{
+  "model": "recorded-only",
+  "tool": "pause-for-fixture",
+  "drift": "continue_to_terminal",
+  "maxSteps": 100
+}
+```
+
+Do not live replay side-effecting tools unless you have explicit executors, sandboxing, approvals, and a reason stronger than ordinary RCA.
+
+## Access And Retention
+
+isplay evidence can include prompts, tool args, retrieved documents, memory, state, and tool outputs. Treat it as sensitive operational data:
+
+- Limit access to projects.
+- Apply retention policies.
+- Review artifact payloads, not only metadata.
+- Audit redaction reports.
+- Keep fixture authorship and provenance.

@@ -1,0 +1,111 @@
+---
+title: Run A Hypothesis Batch
+description: Create a small experiment from multiple hypotheses and inspect trial output, requirements, statistics, and effects.
+---
+
+Use a hypothesis batch when you have several plausible causes and want one structured experiment record instead of several disconnected branch commands.
+
+## 1. Start From Observed Evidence
+
+```bash
+npx isplay discover run <runId>
+npx isplay runs context <runId>
+npx isplay runs checkpoints <runId>
+```
+
+Write hypotheses from specific observed context items, state fields, model settings, or tool outputs.
+
+## 2. Create A Batch JSON
+
+```json
+{
+  "projectId": "<project id>",
+  "baseRunId": "<run id>",
+  "name": "claim-decision-hypotheses",
+  "checkpoint": { "kind": "name", "value": "before-decision" },
+  "replayPolicy": {
+    "model": "recorded-only",
+    "tool": "pause-for-fixture",
+    "drift": "continue_to_terminal",
+    "maxSteps": 100
+  },
+  "trialPlan": {
+    "repetitions": 1,
+    "concurrency": 1,
+    "seedPolicy": "none"
+  },
+  "hypotheses": [
+    {
+      "id": "mask-refund-clause",
+      "title": "Refund clause caused the approval",
+      "interventions": [
+        {
+          "kind": "prompt_clause_mask",
+          "target": { "jsonPointer": "/prompt/clauses/2" },
+          "description": "Mask refund policy clause"
+        }
+      ]
+    },
+    {
+      "id": "patch-tool-args",
+      "title": "Wrong claim ID caused the lookup",
+      "interventions": [
+        {
+          "kind": "tool_args_patch",
+          "target": { "toolName": "lookup_claim" },
+          "patch": { "claimId": "C-105" },
+          "description": "Use neighboring claim ID"
+        }
+      ]
+    }
+  ]
+}
+```
+
+## 3. Create And Run
+
+```bash
+npx isplay experiments create batch.json
+npx isplay experiments run <experimentId>
+```
+
+The current server executes synchronously, so the command returns results rather than only queuing background work.
+
+## 4. Inspect Requirements And Trial Matrix
+
+```bash
+npx isplay experiments requirements <experimentId>
+npx isplay experiments trial-matrix <experimentId>
+```
+
+Requirements show fixture tasks across all experiment replays. Trial matrix shows arms and replay statuses.
+
+## 5. Inspect Statistics And Effects
+
+```bash
+npx isplay experiments statistics <experimentId>
+npx isplay experiments effects <experimentId>
+npx isplay effects list <experimentId>
+```
+
+Read effect status conservatively:
+
+| Status | How to interpret it |
+| --- | --- |
+| `supported` | Current evidence supports the effect under the experiment policy. |
+| `inconclusive` | More trials, fixtures, or narrower interventions are needed. |
+| `invalid` | Non-comparability or failure made the result unusable. |
+| `not_supported` | The tested hypothesis did not produce the expected output. |
+
+## 6. Write A Short Result
+
+```text
+Hypothesis: <title>
+Policy: recorded-only model, pause-for-fixture tool, continue_to_terminal drift
+Trials: <count>
+First divergence: <event or none>
+Fixture dependence: <none / fixture IDs and provenance>
+Effect status: <supported / inconclusive / invalid / not_supported>
+Validity labels: <labels>
+Next action: <repeat, narrow target, resolve fixture, or report>
+```

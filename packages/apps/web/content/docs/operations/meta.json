@@ -1,0 +1,14 @@
+{
+  "title": "Operations",
+  "description": "Local stack, environment, storage, workers, testing, production hardening, and troubleshooting",
+  "pages": [
+    "index",
+    "local-stack",
+    "environment",
+    "storage-and-artifacts",
+    "worker-jobs",
+    "testing-and-build",
+    "production-hardening",
+    "troubleshooting"
+  ]
+}

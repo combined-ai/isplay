@@ -1,0 +1,35 @@
+---
+title: Runtime Records
+description: Projects, agents, runs, events, artifacts, statuses, and base record fields.
+---
+
+## Records
+
+| Schema | Important fields |
+| --- | --- |
+| `Project` | `id`, `createdAt`, `name`, `metadata` |
+| `Agent` | `projectId`, `serviceName`, `framework`, `packageVersions`, `metadata` |
+| `Run` | `projectId`, `agentId`, `name`, `status`, `startedAt`, `endedAt`, `metadata` |
+| `EventRecord` | `projectId`, `runId`, `seq`, `type`, `refId`, `parentEventId`, `occurredAt`, `data`, `metadata` |
+| `Artifact` | `projectId`, `runId`, `kind`, `objectKey`, `sha256`, `sizeBytes`, `mimeType`, `compression`, `redactionState`, `metadata` |
+
+## Run Status
+
+```text
+running
+ok
+error
+cancelled
+```
+
+## Event Types
+
+The known event enum values are listed in [Events](/docs/reference/events). The event schema also accepts custom strings.
+
+## Artifact Redaction State
+
+```text
+raw
+redacted
+metadata_only
+```

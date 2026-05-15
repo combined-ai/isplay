@@ -1,0 +1,71 @@
+---
+title: Quickstart
+description: Capture a run after installation and start the first replay-backed investigation.
+---
+
+Use this page after [installing isplay](/docs/install). If you want the shortest path, use the skill from the install page and let the agent run these steps.
+
+## Capture A Small Run
+
+```ts
+import { init } from "@isplay/sdk";
+
+const client = init({
+  projectId: process.env.ISPLAY_PROJECT_ID!,
+  baseUrl: process.env.ISPLAY_API_URL,
+  serviceName: "claims-agent",
+});
+
+await client.withRun({ name: "claim-review" }, async () => {
+  await client.annotateContext({
+    kind: "system_message",
+    path: "prompt.system",
+    value: "Prefer policy-grounded answers.",
+  });
+
+  await client.checkpoint("before-decision", {
+    claimId: "C-104",
+    stage: "ready",
+  });
+});
+```
+
+## Inspect The Run
+
+<Steps>
+  <Step>
+    Find the captured run.
+
+```bash
+npx isplay runs list --project "$ISPLAY_PROJECT_ID"
+```
+
+  </Step>
+  <Step>
+    Discover the trace.
+
+```bash
+npx isplay discover run <runId>
+npx isplay runs context <runId>
+npx isplay runs checkpoints <runId>
+```
+
+  </Step>
+  <Step>
+    Ask the skill to investigate.
+
+```text
+Use $isplay-analysis. Inspect run <runId>, branch likely hypotheses, replay likely branches, resolve fixture requirements when safe, and return an evidence-bounded RCA report with validity labels.
+```
+
+  </Step>
+</Steps>
+
+## Continue
+
+<Cards>
+  <Card title="Install" href="/docs/install" description="Skill install, manual adapter setup, and capture wiring." />
+  <Card title="First captured run" href="/docs/tutorials/first-captured-run" description="A complete SDK capture tutorial." />
+  <Card title="Start analyzing" href="/docs/guides/start-analyzing" description="Discovery, replay, effects, and reporting." />
+  <Card title="Integrations" href="/docs/integrations" description="Choose and wire the adapter for your runtime." />
+</Cards>

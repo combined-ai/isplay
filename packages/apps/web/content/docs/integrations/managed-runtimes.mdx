@@ -1,0 +1,74 @@
+---
+title: Managed Runtimes
+description: How to interpret capture and replay guarantees for Codex, Claude Code, and other runtimes that own model and tool dispatch.
+---
+
+Managed runtimes expose hooks, transcripts, streams, and sometimes tool permission gates, but they usually do not let an adapter replace every model or tool output before execution. That distinction determines what you can claim.
+
+## Managed Runtime Rule
+
+<Callout type="warning" title="Managed is not deterministic by default">
+If the adapter observes a tool after it already ran, or can only add context after a result, do not call the replay deterministic. Call it managed replay, fixture-guided analysis, or observability depending on the primitive.
+</Callout>
+
+## Install for Managed Runtimes
+
+Use the adapter that matches the managed agent runtime you are instrumenting.
+
+```bash
+npm install isplay @isplay/sdk @isplay/adapter-codex
+npm install isplay @isplay/sdk @isplay/adapter-claude-code
+```
+
+Codex-specific setup is in [Codex Adapter](/docs/integrations/codex). Claude Code-specific setup is in [Claude Code Adapter](/docs/integrations/claude-code).
+
+## Typical Surfaces
+
+| Surface | Evidence value | Replay value |
+| --- | --- | --- |
+| User prompt hooks | Strong for user-visible input | Can add context or deny in some runtimes. |
+| Pre-tool hooks | Strong for proposed args and permission decisions | Can block/defer; replacement depends on runtime support. |
+| Post-tool hooks | Strong for outputs and errors | Can add context, but cannot undo side effects. |
+| Transcript or JSONL | Strong for after-the-fact trace reconstruction | Usually observational. |
+| Stream output | Useful for model lifecycle and usage | Model output injection usually unsupported. |
+| App-server fork/rollback | Useful for workspace state experiments | Runtime-specific and not a universal model/tool replay primitive. |
+
+## Codex Summary
+
+The Codex adapter has:
+
+- Hook handling for prompt submit, pre-tool, permission request, post-tool, and stop events.
+- JSONL ingestion for turn and item events.
+- Tool mapping for Bash, `apply_patch`, MCP tool calls, and WebSearch.
+- Plugin file generation helpers.
+- App-server request helpers for thread fork, rollback, and assistant context injection.
+
+Its capability status is `managed_replay`. Built-in tools do not universally support pre-execution synthetic results.
+
+## Claude Code Summary
+
+The Claude Code adapter has:
+
+- Hook handling for prompt submit, pre-tool, post-tool, and stop events.
+- Stream-json ingestion for system, assistant, and result events.
+- Hook settings generation for prompt/tool/stop/compact/subagent event names.
+- Fixture behavior that can deny/defer before tool execution or add post-tool context.
+
+Its capability status is `managed_replay`, but model capture is `observability_only` and model replay is `unsupported` with current public hooks.
+
+## Reporting Language
+
+| Situation | Good wording |
+| --- | --- |
+| Hook captured a tool before execution and blocked it | "The managed adapter blocked the side effect before execution." |
+| Hook added fixture output after a tool ran | "The result is post-tool-context fixture guidance and cannot undo side effects." |
+| JSONL transcript was ingested | "The trace reconstructs observed runtime behavior." |
+| No model-output injection exists | "Model replay is unsupported for this managed runtime." |
+| Tool result was synthetic before execution | "Native or proxy fixture replay, depending on adapter capability." |
+
+## Safety Advice
+
+- Treat unknown side-effect class as unsafe.
+- Use block/defer for write and external mutation tools during analysis.
+- Prefer isplay-owned MCP or proxy tools for fixture-safe managed replay.
+- Keep final reports explicit about managed-runtime caveats.

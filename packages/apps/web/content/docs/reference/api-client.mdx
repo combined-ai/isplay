@@ -1,0 +1,59 @@
+---
+title: API Client Reference
+description: Programmatic HTTP client options, resources, methods, and errors.
+---
+
+`@isplay/api-client` wraps the HTTP API and throws structured errors for failed responses.
+
+## Imports
+
+```ts
+import {
+  IsplayApiClient,
+  IsplayApiError,
+  type ApiClientOptions,
+} from "@isplay/api-client";
+```
+
+## Options
+
+```ts
+const api = new IsplayApiClient({
+  baseUrl: process.env.ISPLAY_API_URL,
+  headers: { authorization: `Bearer ${token}` },
+  fetch: customFetch,
+});
+```
+
+| Option | Default | Notes |
+| --- | --- | --- |
+| `baseUrl` | `ISPLAY_API_URL` or `http://127.0.0.1:7373` | API origin. |
+| `headers` | none | Static headers added to requests. |
+| `fetch` | global fetch | Useful for tests, proxies, or instrumentation. |
+
+## Resource Objects
+
+| Resource | Purpose |
+| --- | --- |
+| `projects` | Create/get projects and project catalog. |
+| `runs` | Runs, events, artifacts, checkpoints, model/tool records, run catalog, run context inventory. |
+| `branches` | Fetch branches and create/list interventions. |
+| `replays` | Create/get replays, events, diffs, metrics, requirements, fixtures, resume, effects. |
+| `analysis` | Experiments, hypothesis batches, context search, analysis runs, effect ranking. |
+
+## Top-Level Convenience Methods
+
+`IsplayApiClient` exposes top-level methods for the main resource operations: `health`, `createProject`, `createRun`, `appendEvents`, `createBranch`, `createReplay`, `createExperiment`, `runExperiment`, `createAnalysisRun`, `rankEffects`, and related getters.
+
+## Error Behavior
+
+Failed API responses throw `IsplayApiError` with:
+
+| Field | Meaning |
+| --- | --- |
+| `status` | HTTP status. |
+| `body` | Parsed error body when available. |
+| `method` | HTTP method. |
+| `path` | Request path. |
+
+Use this when building scripts that need retry or user-facing diagnostics.

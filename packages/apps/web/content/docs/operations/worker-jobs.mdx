@@ -1,0 +1,40 @@
+---
+title: Worker Jobs
+description: Current worker handler status and job events behavior.
+---
+
+The worker surface exists but is not yet the execution path for replay or experiments.
+
+## Registered Tasks
+
+`@isplay/worker` registers handlers for:
+
+```text
+replay.exact
+experiment.run
+diff.compute
+metrics.compute
+export.create
+```
+
+Current handlers log payloads. They do not execute durable background jobs.
+
+## Job Events
+
+```bash
+npx isplay jobs events <jobId>
+```
+
+This calls:
+
+```text
+GET /v1/jobs/{id}/events
+```
+
+The server returns a simple SSE stream with `job.started` and `job.finished` for the requested ID.
+
+## Practical Meaning
+
+- `experiments run --no-wait` is not a real detached background run in the current server.
+- Replay and experiments execute synchronously.
+- Do not build production automation that depends on persisted job status yet.

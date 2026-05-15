@@ -1,0 +1,62 @@
+---
+title: Resolve Fixtures
+description: Safely satisfy replay fixture requirements with explicit output, scope, and provenance.
+---
+
+Replay pauses when a branch reaches a divergent tool output that cannot be copied from the base trace. Resolving that pause means adding a fixture.
+
+## 1. Inspect Requirements
+
+```bash
+npx isplay replay requirements <replayId>
+```
+
+Record:
+
+- requirement ID
+- tool name
+- args artifact ID
+- args hash
+- branch ID
+- reason
+
+## 2. Decide Whether A Fixture Is Appropriate
+
+| Question | If no |
+| --- | --- |
+| Do you understand why the tool diverged? | Inspect diff and branch intervention first. |
+| Can the output be safely supplied? | Stop or change policy. |
+| Is provenance clear? | Do not use it for final RCA. |
+| Is the tool side-effecting? | Prefer recorded/simulator/analyst fixture over live execution. |
+| Is scope narrow enough? | Scope to replay or branch. |
+
+## 3. Add A Fixture
+
+```bash
+npx isplay fixtures add <replayId> \
+  --tool lookup_claim \
+  --matcher '{"argsHash":"<args hash>"}' \
+  --output '{"eligible":true,"limit":500}' \
+  --provenance analyst_fixture \
+  --branch <branchId>
+```
+
+Use `recorded` when the output came from a captured trace. Use `analyst_fixture` when a human supplied it from an approved source. Use `simulator` only when you can name the simulator. Treat `ai_fixture` as exploratory unless validated.
+
+## 4. Resume Replay
+
+```bash
+npx isplay replay resume <replayId>
+npx isplay replay diff <replayId>
+npx isplay replay metrics <replayId>
+```
+
+## 5. Report The Dependency
+
+Always include fixture dependence:
+
+```text
+Replay paused on `lookup_claim`; we supplied analyst fixture `fixture_...` matched by argsHash. The resulting effect is sensitive_to_fixture.
+```
+
+If the conclusion changes only because of a weak fixture, the right next action is usually a better fixture or a narrower branch.

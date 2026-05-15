@@ -1,0 +1,7 @@
+interface:
+  display_name: "isplay Analysis"
+  short_description: "Analyze isplay traces and experiments"
+  default_prompt: "Use $isplay-analysis to investigate why an agent run behaved the way it did."
+
+policy:
+  allow_implicit_invocation: true

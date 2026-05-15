@@ -1,0 +1,46 @@
+---
+title: Adapter Capability Manifest Reference
+description: Capability statuses, primitive modes, and fields for managed runtime adapters.
+---
+
+Capability manifests describe what an adapter can actually do. They are most important for managed runtimes where capture and replay powers differ by hook.
+
+## Status Values
+
+```text
+native_full
+managed_replay
+observability_only
+unsupported
+```
+
+## Primitive Modes
+
+```text
+native_replace
+proxy_replace
+post_result_replace
+block_only
+observe_only
+```
+
+## Interpretation
+
+| Mode | Replay implication |
+| --- | --- |
+| `native_replace` | Strongest; runtime supports pre-downstream substitution. |
+| `proxy_replace` | Strong when adapter owns the boundary. |
+| `post_result_replace` | Side effects may already have occurred. |
+| `block_only` | Useful for safety but not full synthetic replay. |
+| `observe_only` | Capture evidence only; do not claim deterministic replay. |
+
+## Documentation Rule
+
+Every integration page should state:
+
+- capture coverage
+- checkpoint support
+- model replacement support
+- tool replacement support
+- side-effect blocking support
+- known caveats

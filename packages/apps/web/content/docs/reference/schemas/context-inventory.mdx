@@ -1,0 +1,66 @@
+---
+title: Context Inventory Schemas
+description: Prompt messages, prompt clauses, context items, context inventory, search, and catalogs.
+---
+
+## Prompt Roles
+
+```text
+system
+developer
+user
+assistant
+tool
+```
+
+## Context Item Kinds
+
+```text
+system_message
+developer_message
+user_message
+assistant_message
+prompt_clause
+tool_argument
+tool_result
+retrieval_chunk
+memory_item
+state_field
+tool_schema
+model_setting
+```
+
+## Visibility
+
+```text
+model_visible
+tool_visible
+state_only
+metadata_only
+```
+
+## ContextItem
+
+| Field | Notes |
+| --- | --- |
+| `projectId`, `runId` | Ownership. |
+| `checkpointId`, `modelCallId`, `sourceEventId` | Optional scoping. |
+| `kind` | Context item kind. |
+| `path` | Stable path such as `prompt.system` or `state.claim.status`. |
+| `ordinal` | Optional ordering. |
+| `contentArtifactId` | Payload artifact. |
+| `contentHash` | Stable content hash. |
+| `tokenEstimate` | Optional token count. |
+| `provenance` | Source description. |
+| `visibility` | Visibility enum. |
+| `redactionState` | `raw`, `redacted`, or `metadata_only`. |
+
+## ContextSearchInput
+
+| Field | Type |
+| --- | --- |
+| `projectId` | string |
+| `runId` | optional string |
+| `kinds` | optional context item kind array |
+| `query` | optional string |
+| `limit` | positive integer, max `200`, default `50` |

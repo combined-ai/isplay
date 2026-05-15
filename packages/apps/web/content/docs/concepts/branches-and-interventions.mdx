@@ -1,0 +1,53 @@
+---
+title: Branches And Interventions
+description: How hypotheses become checkpoint forks and targeted controlled changes.
+---
+
+A branch is a hypothesis fork. It references a base run, a checkpoint, a replay policy, and one or more interventions. It is not a full copy of the run.
+
+## Branch Shape
+
+| Field | Meaning |
+| --- | --- |
+| `baseRunId` | The observed run being tested. |
+| `checkpointId` | The restart or comparison point. |
+| `parentBranchId` | Optional branch lineage. |
+| `name` | Human-readable hypothesis name. |
+| `replayPolicy` | Default model/tool/drift policy for replays from this branch. |
+
+## Intervention Kinds
+
+| Kind | Typical use |
+| --- | --- |
+| `context_mask` | Hide a context item. |
+| `message_patch` | Patch system, developer, user, assistant, or tool message content. |
+| `prompt_patch` | Patch a prompt artifact or prompt-like event. |
+| `prompt_clause_mask` | Remove or mask one instruction clause. |
+| `memory_mask` | Remove memory from replayed context. |
+| `state_mask` | Hide state while preserving structure. |
+| `state_patch` | Change one state field. |
+| `tool_args_patch` | Change tool proposal or execution args. |
+| `tool_mask` | Remove or block a tool. |
+| `tool_schema_edit` / `tool_schema_patch` | Change tool descriptions or parameters. |
+| `tool_result_substitution` | Replace a tool output with explicit evidence. |
+| `retrieval_substitution` | Swap one retrieved chunk or result set. |
+| `model_config_patch` / `model_config_change` | Change model provider/settings. |
+| `policy_override` | Change replay policy inside a controlled experiment. |
+| `input_patch` | Patch original user or task input. |
+| `human_decision_substitution` | Replace an approval or human decision. |
+| `latency_or_error_injection` | Simulate delay or failure. |
+| `checkpoint_resume` | Resume from a named alternate state snapshot. |
+
+## Targeting
+
+Interventions can target by event ID, `refId`, event type, tool name, model call ID, artifact ID, JSON pointer, or context item identity depending on the route or experiment input. Prefer the most specific stable target available.
+
+<Callout type="info" title="One hypothesis, one branch">
+Bundle interventions only when the hypothesis itself requires the bundle. If you remove a prompt clause, change a model setting, and substitute a tool result in the same branch, a changed replay no longer isolates which change mattered.
+</Callout>
+
+## Patch Semantics
+
+Patch payloads can be direct replacements, shallow object merges, or operation arrays. Experiment inputs support JSON Patch operations plus `replace_text` and `mask_span`.
+
+Use `expectedBaseHash` in experiment specs when you are targeting a specific context item or artifact content. It prevents silently applying a patch to a stale or changed baseline.
