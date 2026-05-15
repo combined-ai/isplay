@@ -46,7 +46,7 @@ jobs:
           VERCEL_GIT_COMMIT_AUTHOR_NAME: combined-ai
           VERCEL_GIT_COMMIT_AUTHOR_EMAIL: noreply@combined.ai
 
-      - run: vercel deploy --prebuilt --prod --token="${{ secrets.VERCEL_TOKEN }}"
+      - run: vercel deploy --prebuilt --prod --archive=tgz --token="${{ secrets.VERCEL_TOKEN }}"
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
