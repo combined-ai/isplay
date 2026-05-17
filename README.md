@@ -10,9 +10,9 @@
 </p>
 
 <p align="center">
-  <a href="https://isplay.vercel.app">Website</a>
+  <a href="https://isplay.dev">Website</a>
   ·
-  <a href="https://isplay.vercel.app/docs">Docs</a>
+  <a href="https://isplay.dev/docs">Docs</a>
   ·
   <a href="#quick-start">Quick Start</a>
 </p>
