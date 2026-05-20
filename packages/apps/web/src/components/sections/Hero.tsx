@@ -19,7 +19,7 @@ export function Hero() {
                   <span className="hero_transparent-part">Replayable infrastructure for agent investigations</span>
                 </h1>
               </div>
-              <div className="button-group is-hero">
+              <div className="button-group">
                 <ButtonIcon label="Install" href="/docs/install" variant="white" eventName="Install-hero" />
                 <ButtonIcon label="Agent skill" href="/docs/install#recommended-agent-skill" variant="transparent" eventName="Skill-hero" />
               </div>
