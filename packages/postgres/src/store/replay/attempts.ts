@@ -11,19 +11,24 @@ import {
 } from "@isplay/core";
 import { ExperimentPlanStore } from "../experiments/plans.js";
 
+type PaginationOptions = { limit?: number; offset?: number };
+
 export class ReplayAttemptStore extends ExperimentPlanStore {
   async putReplayAttempt(attempt: ReplayAttempt): Promise<ReplayAttempt> {
     const record = ReplayAttemptSchema.parse(attempt);
-    await this.putProjection(record.id, record.projectId, record.runId, "replay_attempt", record.status, record);
+    await this.putProjection(record.id, record.projectId, record.baseRunId, "replay_attempt", record.status, record);
     return record;
   }
 
-  async listReplayAttempts(replayId: string): Promise<ReplayAttempt[]> {
+  async listReplayAttempts(replayId: string, page?: PaginationOptions): Promise<ReplayAttempt[]> {
+    const pagination = normalizePagination(page);
     const rows = await this.pool.query<{ data: unknown }>(
-      "SELECT data FROM projections WHERE kind = 'replay_attempt' AND data->>'replayId' = $1 ORDER BY created_at ASC",
-      [replayId]
+      pagination
+        ? "SELECT data FROM projections WHERE kind = 'replay_attempt' AND data->>'replayId' = $1 ORDER BY created_at ASC LIMIT $2 OFFSET $3"
+        : "SELECT data FROM projections WHERE kind = 'replay_attempt' AND data->>'replayId' = $1 ORDER BY created_at ASC",
+      pagination ? [replayId, pagination.limit, pagination.offset] : [replayId]
     );
-    return rows.rows.map((row) => ReplayAttemptSchema.parse(row.data));
+    return rows.rows.map((row) => parseReplayAttemptRecord(row.data));
   }
 
   async putReplayStep(step: ReplayStep): Promise<ReplayStep> {
@@ -80,4 +85,19 @@ export class ReplayAttemptStore extends ExperimentPlanStore {
     const nested = await Promise.all((await this.listExperimentReplays(experimentId)).map((replay) => this.listFixtureRequirements(replay.id)));
     return nested.flat();
   }
+}
+
+function normalizePagination(page?: PaginationOptions): Required<PaginationOptions> | undefined {
+  if (!page) return undefined;
+  return { limit: Math.min(Math.max(Math.trunc(page.limit ?? 100), 1), 500), offset: Math.max(Math.trunc(page.offset ?? 0), 0) };
+}
+
+function parseReplayAttemptRecord(value: unknown): ReplayAttempt {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Expected object record.");
+  const record = { ...(value as Record<string, unknown>) };
+  if (!record.baseRunId && record.runId) {
+    record.baseRunId = record.runId;
+    delete record.runId;
+  }
+  return ReplayAttemptSchema.parse(record);
 }

@@ -4,7 +4,7 @@
     "rootDir": "src",
     "outDir": "dist"
   },
-  "references": [{ "path": "../../api-client" }, { "path": "../server" }],
+  "references": [{ "path": "../../api-client" }, { "path": "../server" }, { "path": "../worker" }],
   "include": ["src/**/*.ts"],
   "exclude": ["dist", "**/*.test.ts"]
 }

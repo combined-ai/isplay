@@ -47,4 +47,4 @@ requires_effect_size
 
 ## Current Runner Note
 
-The schema includes concurrency and stop-rule fields. The current server runner is synchronous and serial.
+The schema includes concurrency and stop-rule fields. `wait=false` runs through durable local worker jobs, but execution inside one experiment is still serial.

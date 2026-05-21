@@ -55,4 +55,4 @@ Custom events should still use `refId` when they relate to a durable record.
 
 ## Append Behavior
 
-`POST /v1/runs/{id}/events:batch` checks that every event body `runId` matches the path run ID. Duplicate `(runId, seq)` inserts are ignored by the store.
+`POST /v1/runs/{id}/events:batch` checks that every event body `runId` matches the path run ID. The store rejects appends to terminal runs, requires contiguous sequence numbers, treats exact same-event retries as idempotent, and rejects the same `(runId, seq)` with different content.

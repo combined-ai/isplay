@@ -2,6 +2,7 @@ import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import type { Command } from "commander";
 import { startServer } from "@isplay/server";
+import { startWorker } from "@isplay/worker";
 import { dockerAvailable, ensurePostgresContainer } from "../lib/docker.js";
 import { createApiClient } from "../lib/api.js";
 import { printDoctor } from "../lib/output.js";
@@ -29,7 +30,9 @@ async function startAction(options: { port: number }): Promise<void> {
   await mkdir(artifactsDir, { recursive: true });
   const connectionString = process.env.DATABASE_URL ?? (await ensurePostgresContainer());
   const { url } = await startServer({ port: options.port, connectionString, artifactsDir });
+  await startWorker({ connectionString, artifactsDir });
   console.log(`isplay API listening at ${url}`);
+  console.log("isplay worker running");
   console.log(`Postgres: ${connectionString.replace(/:\/\/.*:.*@/, "://***:***@")}`);
 }
 

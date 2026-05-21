@@ -35,6 +35,7 @@ The goal is not to guess why an agent failed. The goal is to preserve enough evi
 
 ```bash
 npm install
+npm run build
 npx isplay start
 ```
 

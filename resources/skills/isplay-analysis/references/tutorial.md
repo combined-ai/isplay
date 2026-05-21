@@ -46,8 +46,8 @@ Avoid testing from a checkpoint after the suspected cause already happened.
 Turn observations into testable statements:
 
 - Bad: "The model was confused."
-- Good: "The duplicate receipt tool output caused escalation."
-- Better: "Substituting a low-risk `risk-signals` output should reduce tool-sequence distance and change the final decision from escalation toward approval."
+- Too strong: "The duplicate receipt tool output caused escalation."
+- Better: "Substituting a low-risk `risk-signals` output should reduce tool-sequence distance and change the recorded/derived comparison from escalation toward approval."
 
 Prefer many narrow hypotheses over one broad bundle. Use a batch experiment to run them together.
 

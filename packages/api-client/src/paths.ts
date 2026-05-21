@@ -25,12 +25,15 @@ import type {
   ExperimentArm,
   ExperimentStatistics,
   FixtureRequirement,
+  FixtureUse,
+  Hypothesis,
   Intervention,
   Metric,
   ModelCall,
   Project,
   RankEffectsInput,
   Replay,
+  ReplayAttempt,
   Run,
   RunExperimentInput,
   ToolExecution,
@@ -42,6 +45,8 @@ type Json<T> = { content: { "application/json": T } };
 type Body<T> = { requestBody: Json<T> };
 type Ok<T> = { responses: { 200: Json<T> } };
 type Created<T> = { responses: { 201: Json<T> } };
+type CreatedOrAccepted<T> = { responses: { 201: Json<T>; 202: Json<T> } };
+type OkOrAccepted<T> = { responses: { 200: Json<T>; 202: Json<T> } };
 type Upsert<T> = { responses: { 200: Json<T>; 201: Json<T> } };
 type Path<T extends Record<string, string>> = { parameters: { path: T } };
 type Query<T extends Record<string, unknown>> = { parameters: { query?: T } };
@@ -55,15 +60,59 @@ export type AnalysisRunCreateResponse = {
   scores: Metric[];
 };
 
+export type CreateExperimentResponse = {
+  experiment: Experiment;
+  hypotheses?: Hypothesis[];
+  arms: ExperimentArm[];
+};
+
+export type ExperimentResultsResponse = {
+  experiment: Experiment;
+  arms: ExperimentArm[];
+  replays: Replay[];
+  requirements: FixtureRequirement[];
+  effects: EffectCandidate[];
+  statistics: ExperimentStatistics;
+};
+
+export type ExperimentJobResponse = {
+  jobId: string;
+  experimentId: string;
+  status: "queued";
+};
+
+export type ExperimentRunResponse = ExperimentResultsResponse | ExperimentJobResponse;
+
+export type TrialMatrixRow = {
+  arm: ExperimentArm;
+  trials: Array<{
+    replay: Replay | undefined;
+    attempts: ReplayAttempt[];
+    metrics: Metric[];
+    fixtureUses: FixtureUse[];
+  }>;
+};
+
+export type ArmComparisonRow = TrialMatrixRow;
+
+export type HypothesisBatchCreateResponse = CreateExperimentResponse & {
+  results: ExperimentResultsResponse;
+};
+
+export type PageQuery = {
+  limit?: number;
+  offset?: number;
+};
+
 export type IsplayPaths = {
   "/health": { get: Ok<{ ok: boolean }> };
   "/v1/projects": { post: Post<CreateProjectInput, Project> };
   "/v1/projects/{id}": { get: Path<{ id: string }> & Ok<Project> };
   "/v1/projects/{id}/catalog": { get: Path<{ id: string }> & Ok<Catalog> };
-  "/v1/runs": { get: Query<{ projectId?: string }> & Ok<Run[]>; post: Post<CreateRunInput, Run> };
+  "/v1/runs": { get: Query<{ projectId?: string } & PageQuery> & Ok<Run[]>; post: Post<CreateRunInput, Run> };
   "/v1/runs/{id}": { get: Path<{ id: string }> & Ok<Run>; patch: Path<{ id: string }> & Body<Partial<Run>> & Ok<Run> };
-  "/v1/runs/{id}/events:batch": { post: Path<{ id: string }> & Body<{ events: EventRecord[] }> & Created<{ inserted: number }> };
-  "/v1/runs/{id}/events": { get: Path<{ id: string }> & Ok<EventRecord[]> };
+  "/v1/runs/{id}/events:batch": { post: Path<{ id: string }> & Body<{ events: EventRecord[] }> & Ok<{ inserted: number }> };
+  "/v1/runs/{id}/events": { get: Path<{ id: string }> & Query<PageQuery> & Ok<EventRecord[]> };
   "/v1/runs/{id}/model-calls": { post: Path<{ id: string }> & PutEvent<ModelCall, ModelCall> };
   "/v1/runs/{id}/tool-proposals": { post: Path<{ id: string }> & PutEvent<ToolProposal, ToolProposal> };
   "/v1/runs/{id}/tool-executions": { post: Path<{ id: string }> & PutEvent<ToolExecution, ToolExecution> };
@@ -75,9 +124,10 @@ export type IsplayPaths = {
   "/v1/artifacts/{id}": { get: Path<{ id: string }> & Ok<Artifact & { payload?: unknown }> };
   "/v1/branches/{id}": { get: Path<{ id: string }> & Ok<Branch> };
   "/v1/branches/{id}/interventions": { get: Path<{ id: string }> & Ok<Intervention[]>; post: Path<{ id: string }> & Post<CreateInterventionInput, Intervention> };
-  "/v1/replays": { post: Post<CreateReplayInput, Replay> };
+  "/v1/replays": { post: Body<CreateReplayInput> & CreatedOrAccepted<Replay> };
   "/v1/replays/{id}": { get: Path<{ id: string }> & Ok<Replay> };
-  "/v1/replays/{id}/events": { get: Path<{ id: string }> & Ok<EventRecord[]> };
+  "/v1/replays/{id}/events": { get: Path<{ id: string }> & Query<PageQuery> & Ok<EventRecord[]> };
+  "/v1/replays/{id}/attempts": { get: Path<{ id: string }> & Query<PageQuery> & Ok<ReplayAttempt[]> };
   "/v1/replays/{id}/diff": { get: Path<{ id: string }> & Ok<DiffRecord[]> };
   "/v1/replays/{id}/metrics": { get: Path<{ id: string }> & Ok<Metric[]> };
   "/v1/replays/{id}/fixture-requirements": { get: Path<{ id: string }> & Ok<FixtureRequirement[]> };
@@ -89,15 +139,15 @@ export type IsplayPaths = {
   "/v1/model-calls/{id}/context-inventory": { get: Path<{ id: string }> & Ok<ContextInventory> };
   "/v1/checkpoints/{id}/context-inventory": { get: Path<{ id: string }> & Ok<ContextInventory> };
   "/v1/context/search": { post: Body<ContextSearchInput> & Ok<ContextItem[]> };
-  "/v1/experiments": { post: Post<CreateExperimentInput, { experiment: Experiment; arms: ExperimentArm[] }> };
-  "/v1/hypothesis-batches": { post: Post<CreateHypothesisBatchInput, unknown> };
+  "/v1/experiments": { post: Post<CreateExperimentInput, CreateExperimentResponse> };
+  "/v1/hypothesis-batches": { post: Post<CreateHypothesisBatchInput, HypothesisBatchCreateResponse> };
   "/v1/experiments/{id}": { get: Path<{ id: string }> & Ok<Experiment> };
-  "/v1/experiments/{id}/run": { post: Path<{ id: string }> & Body<RunExperimentInput> & Ok<unknown> };
-  "/v1/experiments/{id}/results": { get: Path<{ id: string }> & Ok<unknown> };
-  "/v1/experiments/{id}/requirements": { get: Path<{ id: string }> & Ok<FixtureRequirement[]> };
-  "/v1/experiments/{id}/trial-matrix": { get: Path<{ id: string }> & Ok<unknown[]> };
+  "/v1/experiments/{id}/run": { post: Path<{ id: string }> & Body<RunExperimentInput> & OkOrAccepted<ExperimentRunResponse> };
+  "/v1/experiments/{id}/results": { get: Path<{ id: string }> & Query<PageQuery> & Ok<ExperimentResultsResponse> };
+  "/v1/experiments/{id}/requirements": { get: Path<{ id: string }> & Query<PageQuery> & Ok<FixtureRequirement[]> };
+  "/v1/experiments/{id}/trial-matrix": { get: Path<{ id: string }> & Query<PageQuery> & Ok<TrialMatrixRow[]> };
   "/v1/experiments/{id}/statistics": { get: Path<{ id: string }> & Ok<ExperimentStatistics> };
-  "/v1/experiments/{id}/arm-comparison": { get: Path<{ id: string }> & Ok<unknown[]> };
+  "/v1/experiments/{id}/arm-comparison": { get: Path<{ id: string }> & Query<PageQuery> & Ok<ArmComparisonRow[]> };
   "/v1/experiments/{id}/effects": { get: Path<{ id: string }> & Ok<EffectCandidate[]> };
   "/v1/effects:rank": { post: Body<RankEffectsInput> & Ok<EffectCandidate[]> };
 };

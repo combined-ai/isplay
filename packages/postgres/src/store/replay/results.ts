@@ -5,6 +5,7 @@ import {
   EvidenceEdgeSchema,
   EvidenceNodeSchema,
   MetricSchema,
+  stableHash,
   type AnalysisRun,
   type DiffRecord,
   type EventRecord,
@@ -22,23 +23,40 @@ export type PersistedAnalysis = {
 };
 
 export class ResultStore extends ExperimentStore {
-  async clearReplayOutputs(replayId: string): Promise<void> {
-    await this.deleteReplayDerived(replayId);
-  }
-
-  async putReplayEvents(replayId: string, events: EventRecord[]): Promise<EventRecord[]> {
+  async putReplayEvents(replayId: string, events: EventRecord[], attemptId?: string): Promise<EventRecord[]> {
     for (const event of events) {
       const record = EventSchema.parse(event);
-      await this.putProjection(`${replayId}:${record.id}`, record.projectId, record.runId, "replay_event", undefined, { ...record, replayId });
+      const id = attemptId ? `${replayId}:${attemptId}:${record.id}` : `${replayId}:${record.id}`;
+      const data = { ...record, replayId, attemptId };
+      const inserted = await this.pool.query<{ id: string }>(
+        `INSERT INTO projections (id, project_id, run_id, kind, status, data)
+         VALUES ($1, $2, $3, 'replay_event', NULL, $4)
+         ON CONFLICT (id) DO NOTHING
+         RETURNING id`,
+        [id, record.projectId, record.runId, JSON.stringify(data)]
+      );
+      if (!inserted.rowCount) {
+        const existing = await this.pool.query<{ data: unknown }>("SELECT data FROM projections WHERE id = $1 AND kind = 'replay_event'", [id]);
+        if (!existing.rows[0] || stableHash(existing.rows[0].data) !== stableHash(data)) {
+          throw new Error(`Conflicting replay event already exists for replay ${replayId}: ${record.id}.`);
+        }
+      }
     }
     return events;
   }
 
-  async listReplayEvents(replayId: string): Promise<EventRecord[]> {
-    const result = await this.pool.query<{ data: unknown }>(
-      "SELECT data FROM projections WHERE kind = 'replay_event' AND data->>'replayId' = $1 ORDER BY (data->>'seq')::int ASC",
-      [replayId]
-    );
+  async listReplayEvents(replayId: string, attemptId?: string): Promise<EventRecord[]> {
+    const replay = attemptId ? undefined : await this.getReplay(replayId);
+    const selectedAttemptId = attemptId ?? replay?.latestAttemptId;
+    const result = selectedAttemptId
+      ? await this.pool.query<{ data: unknown }>(
+          "SELECT data FROM projections WHERE kind = 'replay_event' AND data->>'replayId' = $1 AND data->>'attemptId' = $2 ORDER BY (data->>'seq')::int ASC",
+          [replayId, selectedAttemptId]
+        )
+      : await this.pool.query<{ data: unknown }>(
+          "SELECT data FROM projections WHERE kind = 'replay_event' AND data->>'replayId' = $1 ORDER BY (data->>'seq')::int ASC",
+          [replayId]
+        );
     return result.rows.map((row) => EventSchema.parse(row.data));
   }
 
@@ -48,10 +66,16 @@ export class ResultStore extends ExperimentStore {
   }
 
   async listDiffs(replayId: string): Promise<DiffRecord[]> {
-    const result = await this.pool.query<{ data: unknown }>(
-      "SELECT data FROM projections WHERE kind = 'diff' AND data->>'replayId' = $1 ORDER BY created_at ASC",
-      [replayId]
-    );
+    const replay = await this.getReplay(replayId);
+    const result = replay?.latestAttemptId
+      ? await this.pool.query<{ data: unknown }>(
+          "SELECT data FROM projections WHERE kind = 'diff' AND data->>'replayId' = $1 AND data->'metadata'->>'attemptId' = $2 ORDER BY created_at ASC",
+          [replayId, replay.latestAttemptId]
+        )
+      : await this.pool.query<{ data: unknown }>(
+          "SELECT data FROM projections WHERE kind = 'diff' AND data->>'replayId' = $1 ORDER BY created_at ASC",
+          [replayId]
+        );
     return result.rows.map((row) => DiffSchema.parse(row.data));
   }
 
@@ -61,10 +85,16 @@ export class ResultStore extends ExperimentStore {
   }
 
   async listMetrics(replayId: string): Promise<Metric[]> {
-    const result = await this.pool.query<{ data: unknown }>(
-      "SELECT data FROM projections WHERE kind = 'metric' AND data->>'replayId' = $1 ORDER BY created_at ASC",
-      [replayId]
-    );
+    const replay = await this.getReplay(replayId);
+    const result = replay?.latestAttemptId
+      ? await this.pool.query<{ data: unknown }>(
+          "SELECT data FROM projections WHERE kind = 'metric' AND data->>'replayId' = $1 AND data->'metadata'->>'attemptId' = $2 ORDER BY created_at ASC",
+          [replayId, replay.latestAttemptId]
+        )
+      : await this.pool.query<{ data: unknown }>(
+          "SELECT data FROM projections WHERE kind = 'metric' AND data->>'replayId' = $1 ORDER BY created_at ASC",
+          [replayId]
+        );
     return result.rows.map((row) => MetricSchema.parse(row.data));
   }
 

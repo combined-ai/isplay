@@ -1,5 +1,5 @@
 import type { JsonValue } from "@isplay/core";
-import type { IsplaySdk } from "@isplay/sdk";
+import type { IsplaySdk, IsplaySdkOptions } from "@isplay/sdk";
 import type { RuntimeFixtureGateway } from "@isplay/adapter-runtime";
 
 export type OpenClawHookName =
@@ -48,6 +48,9 @@ export type OpenClawHookEvent = {
 
 export type OpenClawAdapterOptions = {
   client?: IsplaySdk;
+  projectId?: string;
+  apiUrl?: string;
+  sdk?: Omit<IsplaySdkOptions, "projectId" | "baseUrl">;
   fixtureGateway?: RuntimeFixtureGateway;
   runKey?: (event: OpenClawHookEvent) => string;
   toolResultMode?: "block" | "native_synthetic";

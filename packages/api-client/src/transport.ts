@@ -1,5 +1,5 @@
-import createClient from "openapi-fetch";
-import { IsplayApiError, summarizeError } from "./errors.js";
+import createClient from "openapi-fetch/src/index.js";
+import { apiErrorOptions, IsplayApiError, summarizeError } from "./errors.js";
 import type { ApiClientOptions } from "./options.js";
 import type { IsplayPaths } from "./paths.js";
 
@@ -22,7 +22,10 @@ export class ApiTransport {
 
   unwrap<T>(result: ApiResult<T>, method: string, path: string): T {
     if (result.error !== undefined) {
-      throw new IsplayApiError(`isplay API ${method} ${path} failed with ${result.response.status}: ${summarizeError(result.error)}`, result.response.status, result.error);
+      throw new IsplayApiError(
+        `isplay API ${method} ${path} failed with ${result.response.status}: ${summarizeError(result.error)}`,
+        apiErrorOptions(result.response, result.error, method, path)
+      );
     }
     return result.data as T;
   }
@@ -30,7 +33,7 @@ export class ApiTransport {
   async text(path: string): Promise<string> {
     const response = await this.fetchImpl(new Request(`${this.baseUrl}${path}`));
     const payload = await response.text();
-    if (!response.ok) throw new IsplayApiError(`isplay API GET ${path} failed with ${response.status}: ${payload.slice(0, 300)}`, response.status, payload);
+    if (!response.ok) throw new IsplayApiError(`isplay API GET ${path} failed with ${response.status}: ${payload.slice(0, 300)}`, apiErrorOptions(response, payload, "GET", path));
     return payload;
   }
 }

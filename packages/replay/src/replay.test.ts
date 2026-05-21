@@ -76,7 +76,8 @@ describe("@isplay/replay", () => {
         projectId: "project_1",
         branchId: "branch_1",
         kind: "input_patch",
-        targetId: "tool_1",
+        target: { refId: "tool_1" },
+        operations: [],
         patch: { args: { query: "new" } },
         metadata: {}
       }
@@ -97,7 +98,8 @@ describe("@isplay/replay", () => {
         projectId: "project_1",
         branchId: "branch_1",
         kind: "message_patch",
-        targetId: "model_1",
+        target: { refId: "model_1" },
+        operations: [{ op: "replace_text", path: "/prompt", value: { search: "strict", replacement: "lenient" } }],
         patch: { operations: [{ op: "replace_text", path: "/prompt", value: { search: "strict", replacement: "lenient" } }] },
         metadata: {}
       }
@@ -105,6 +107,29 @@ describe("@isplay/replay", () => {
     expect(applyInterventions(base, interventions, "replay_1", "run_1")[0]?.data).toMatchObject({
       prompt: "Use lenient fraud rules."
     });
+  });
+
+  it("skips pre-checkpoint target matches and applies the first post-checkpoint match", () => {
+    const base = [
+      event(0, "checkpoint.created", "checkpoint_1", { name: "before-tools" }),
+      event(1, "tool.finished", "tool_before", { toolName: "search", result: { tier: "gold" } }),
+      event(2, "tool.finished", "tool_after", { toolName: "search", result: { tier: "gold" } })
+    ];
+    const interventions: Intervention[] = [
+      {
+        id: "intervention_1",
+        createdAt: nowIso(),
+        projectId: "project_1",
+        branchId: "branch_1",
+        kind: "tool_args_patch",
+        target: { eventType: "tool.finished", toolName: "search" },
+        operations: [{ op: "add", path: "/metadata", value: { source: "post-checkpoint" } }],
+        metadata: {}
+      }
+    ];
+    const branch = applyInterventions(base, interventions, "replay_1", "run_1", { checkpointSeq: 1 });
+    expect(branch[1]?.data).not.toHaveProperty("metadata");
+    expect(branch[2]?.data).toMatchObject({ metadata: { source: "post-checkpoint" } });
   });
 
   it("keeps synthetic branch events linked to the observed run", () => {
@@ -150,6 +175,38 @@ describe("@isplay/replay", () => {
       changedFields: expect.arrayContaining(["args"])
     });
   });
+
+  it("substitutes fixture artifact evidence without retaining stale inline tool output", () => {
+    const args = { query: "customer" };
+    const base = [event(0, "tool.finished", "tool_1", { toolName: "search", args, result: { tier: "gold" } })];
+    const branch = [event(0, "tool.finished", "tool_1", { toolName: "search", args, result: { tier: "platinum" } })];
+    const result = new ReplayEngine().run({
+      replay: makeReplay(),
+      baseEvents: base,
+      branchEvents: branch,
+      fixtures: [
+        {
+          id: "fixture_1",
+          createdAt: nowIso(),
+          projectId: "project_1",
+          toolName: "search",
+          matcher: { argsHash: stableHash(args) },
+          outputArtifactId: "artifact_fixture",
+          outputHash: stableHash({ tier: "diamond" }),
+          provenance: "analyst_fixture",
+          sideEffectClass: "read",
+          metadata: {}
+        }
+      ],
+      policy: { model: "recorded-only", tool: "pause-for-fixture", drift: "continue_to_terminal", maxSteps: 100 }
+    });
+    expect(result.status).toBe("ok");
+    if (result.status === "ok") {
+      expect(result.events[0]?.data).not.toHaveProperty("result");
+      expect(result.events[0]?.data).not.toHaveProperty("output");
+      expect(result.events[0]?.data).toMatchObject({ resultArtifactId: "artifact_fixture", fixtureId: "fixture_1" });
+    }
+  });
 });
 
 function makeReplay(): Replay {
@@ -157,7 +214,7 @@ function makeReplay(): Replay {
     id: "replay_1",
     createdAt: nowIso(),
     projectId: "project_1",
-    runId: "run_1",
+    baseRunId: "run_1",
     status: "running",
     policy: { model: "recorded-only", tool: "pause-for-fixture", drift: "continue_to_terminal", maxSteps: 100 },
     metadata: {}
@@ -171,6 +228,8 @@ function intervention(id: string): Intervention {
     projectId: "project_1",
     branchId: "branch_1",
     kind: "input_patch",
+    target: {},
+    operations: [],
     metadata: {}
   };
 }

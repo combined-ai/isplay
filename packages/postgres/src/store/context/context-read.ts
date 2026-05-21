@@ -52,7 +52,7 @@ export class ContextReadStore extends ResultStore {
     return all
       .filter((item) => !input.kinds?.length || input.kinds.includes(item.kind))
       .filter((item) => !input.query || JSON.stringify(item).toLowerCase().includes(input.query.toLowerCase()))
-      .slice(0, input.limit);
+      .slice(input.offset, input.offset + input.limit);
   }
 
   async getProjectCatalog(projectId: string): Promise<Catalog> {
@@ -128,13 +128,25 @@ function contextFromTools(projectId: string, runId: string, rows: ProjectionRow[
     .filter((row) => row.kind === "tool_proposal" || row.kind === "tool_execution")
     .flatMap((row) => {
       const data = row.data as Record<string, JsonValue>;
-      const items = [item(projectId, runId, row.kind === "tool_execution" ? "tool_result" : "tool_schema", `${row.kind}.${row.id}`, data, { sourceEventId: row.id })];
+      const toolName = typeof data.toolName === "string" ? data.toolName : "unknown_tool";
+      const metadata = toolMetadata(data);
+      const items = [item(projectId, runId, row.kind === "tool_execution" ? "tool_result" : "tool_schema", `${row.kind}.${toolName}.${row.id}`, data, { sourceEventId: row.id, metadata })];
       const argsArtifact = typeof data.argsArtifactId === "string" ? artifacts.find((artifact) => artifact.id === data.argsArtifactId) : undefined;
       const resultArtifact = typeof data.resultArtifactId === "string" ? artifacts.find((artifact) => artifact.id === data.resultArtifactId) : undefined;
-      if (argsArtifact?.payload !== undefined) items.push(item(projectId, runId, "tool_argument", `${row.kind}.${row.id}.args`, argsArtifact.payload, { sourceEventId: row.id, contentArtifactId: argsArtifact.id }));
-      if (resultArtifact?.payload !== undefined) items.push(item(projectId, runId, "tool_result", `${row.kind}.${row.id}.result`, resultArtifact.payload, { sourceEventId: row.id, contentArtifactId: resultArtifact.id }));
+      if (argsArtifact?.payload !== undefined) items.push(item(projectId, runId, "tool_argument", `${row.kind}.${toolName}.${row.id}.args`, argsArtifact.payload, { sourceEventId: row.id, contentArtifactId: argsArtifact.id, metadata }));
+      if (resultArtifact?.payload !== undefined) items.push(item(projectId, runId, "tool_result", `${row.kind}.${toolName}.${row.id}.result`, resultArtifact.payload, { sourceEventId: row.id, contentArtifactId: resultArtifact.id, metadata }));
       return items;
     });
+}
+
+function toolMetadata(data: Record<string, JsonValue>): Record<string, JsonValue> {
+  return {
+    ...(typeof data.toolName === "string" ? { toolName: data.toolName } : {}),
+    ...(typeof data.toolCallId === "string" ? { toolCallId: data.toolCallId } : {}),
+    ...(typeof data.proposalId === "string" ? { proposalId: data.proposalId } : {}),
+    ...(typeof data.sideEffectClass === "string" ? { sideEffectClass: data.sideEffectClass } : {}),
+    ...(typeof data.status === "string" ? { status: data.status } : {})
+  };
 }
 
 function contextFromCheckpoints(projectId: string, runId: string, rows: ProjectionRow[]): ContextItem[] {

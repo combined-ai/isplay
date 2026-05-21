@@ -4,7 +4,7 @@
     "rootDir": "src",
     "outDir": "dist"
   },
-  "references": [{ "path": "../../core" }, { "path": "../../sdk" }, { "path": "../runtime" }],
+  "references": [{ "path": "../../core" }, { "path": "../../sdk" }, { "path": "../kit" }, { "path": "../runtime" }],
   "include": ["src/**/*.ts"],
   "exclude": ["dist", "**/*.test.ts"]
 }

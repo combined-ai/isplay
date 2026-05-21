@@ -1,14 +1,39 @@
 {
   "name": "@isplay/adapter-kit",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./dist/index.js"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   },
   "dependencies": {
-    "@isplay/core": "0.2.0",
-    "@isplay/sdk": "0.2.0"
+    "@isplay/core": "0.3.0",
+    "@isplay/sdk": "0.3.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/isplay/isplay.git"
+  },
+  "bugs": {
+    "url": "https://github.com/isplay/isplay/issues"
+  },
+  "homepage": "https://isplay.dev",
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "description": "Shared primitives for building isplay framework adapters.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.5.0"
   }
 }

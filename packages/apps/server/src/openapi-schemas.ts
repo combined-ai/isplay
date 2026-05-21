@@ -1,8 +1,20 @@
 import { z } from "@hono/zod-openapi";
 
 const MetadataDoc = z.record(z.string(), z.any());
-const BaseDoc = { id: z.string(), createdAt: z.string() };
+const BaseDoc = { id: z.string(), createdAt: z.string(), recordVersion: z.number().optional() };
 const OptionalString = z.string().optional();
+const InterventionTargetDoc = z.object({
+  refId: OptionalString,
+  eventId: OptionalString,
+  eventType: OptionalString,
+  toolName: OptionalString,
+  modelCallId: OptionalString,
+  artifactId: OptionalString,
+  contextItemId: OptionalString,
+  contextPath: OptionalString,
+  jsonPointer: OptionalString
+});
+const PatchOperationDoc = z.object({ op: z.string(), path: z.string(), value: z.any().optional(), from: OptionalString });
 const ReplayPolicyDoc = z.object({
   model: z.string(),
   tool: z.string(),
@@ -71,11 +83,14 @@ export const CreateCheckpointDoc = z.object({
 export const BranchDoc = z.object({ ...BaseDoc, projectId: z.string(), baseRunId: z.string(), checkpointId: z.string(), parentBranchId: OptionalString, name: OptionalString, replayPolicy: ReplayPolicyDoc, metadata: MetadataDoc });
 export const CreateBranchDoc = z.object({ projectId: z.string(), baseRunId: z.string(), checkpointId: z.string(), parentBranchId: OptionalString, name: OptionalString, replayPolicy: ReplayPolicyDoc.optional(), metadata: MetadataDoc.optional() });
 
-export const InterventionDoc = z.object({ ...BaseDoc, projectId: z.string(), branchId: z.string(), kind: z.string(), targetId: OptionalString, description: OptionalString, patch: z.any().optional(), metadata: MetadataDoc });
-export const CreateInterventionDoc = z.object({ projectId: z.string(), branchId: z.string(), kind: z.string(), targetId: OptionalString, description: OptionalString, patch: z.any().optional(), metadata: MetadataDoc.optional() });
+export const InterventionDoc = z.object({ ...BaseDoc, projectId: z.string(), branchId: z.string(), kind: z.string(), target: InterventionTargetDoc, operations: z.array(PatchOperationDoc), description: OptionalString, patch: z.any().optional(), expectedBaseHash: OptionalString, metadata: MetadataDoc });
+export const CreateInterventionDoc = z.object({ projectId: z.string(), branchId: z.string(), kind: z.string(), target: InterventionTargetDoc.optional(), operations: z.array(PatchOperationDoc).optional(), description: OptionalString, patch: z.any().optional(), expectedBaseHash: OptionalString, metadata: MetadataDoc.optional() });
 
-export const ReplayDoc = z.object({ ...BaseDoc, projectId: z.string(), runId: z.string(), branchId: OptionalString, trialId: OptionalString, status: z.string(), policy: ReplayPolicyDoc, firstDivergenceEventId: OptionalString, comparability: OptionalString, pausedRequirementId: OptionalString, error: OptionalString, metadata: MetadataDoc });
-export const CreateReplayDoc = z.object({ projectId: z.string(), runId: z.string(), branchId: OptionalString, trialId: OptionalString, policy: ReplayPolicyDoc.optional(), metadata: MetadataDoc.optional() });
+export const ReplayDoc = z.object({ ...BaseDoc, projectId: z.string(), baseRunId: z.string(), branchId: OptionalString, experimentId: OptionalString, armId: OptionalString, trialIndex: z.number().optional(), status: z.string(), policy: ReplayPolicyDoc, startedAt: OptionalString, endedAt: OptionalString, latestAttemptId: OptionalString, firstDivergenceEventId: OptionalString, comparability: OptionalString, pausedRequirementId: OptionalString, error: OptionalString, metadata: MetadataDoc });
+export const CreateReplayDoc = z.object({ projectId: z.string(), baseRunId: z.string(), branchId: OptionalString, experimentId: OptionalString, armId: OptionalString, trialIndex: z.number().optional(), policy: ReplayPolicyDoc.optional(), wait: z.boolean().optional(), metadata: MetadataDoc.optional() });
+
+export const JobDoc = z.object({ ...BaseDoc, projectId: OptionalString, kind: z.string(), status: z.string(), resourceId: z.string(), graphileJobId: OptionalString, error: OptionalString, metadata: MetadataDoc });
+export const JobEventDoc = z.object({ ...BaseDoc, projectId: OptionalString, jobId: z.string(), seq: z.number(), event: z.string(), data: z.any(), occurredAt: z.string(), metadata: MetadataDoc });
 
 export const FixtureRequirementDoc = z.object({ ...BaseDoc, projectId: z.string(), replayId: z.string(), branchId: OptionalString, toolName: z.string(), argsArtifactId: OptionalString, argsHash: OptionalString, reason: z.string(), status: z.string(), satisfiedByFixtureId: OptionalString, metadata: MetadataDoc });
 export const ToolFixtureDoc = z.object({ ...BaseDoc, projectId: z.string(), replayId: OptionalString, branchId: OptionalString, toolName: z.string(), matcher: z.any(), outputArtifactId: OptionalString, outputHash: OptionalString, schemaVersion: OptionalString, implementationVersion: OptionalString, sideEffectClass: OptionalString, provenance: z.string(), author: OptionalString, metadata: MetadataDoc });

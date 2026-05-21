@@ -1,27 +1,47 @@
 import type { Pool } from "pg";
+import { createHash } from "node:crypto";
 
 export async function migrate(pool: Pool): Promise<void> {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS isplay_migrations (
-      id TEXT PRIMARY KEY,
-      applied_at TIMESTAMPTZ NOT NULL DEFAULT now()
-    );
-  `);
-  const applied = await pool.query<{ id: string }>("SELECT id FROM isplay_migrations");
-  const appliedIds = new Set(applied.rows.map((row) => row.id));
+  const client = await pool.connect();
+  try {
+    await client.query("SELECT pg_advisory_lock(hashtext('isplay:migrations'))");
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS isplay_migrations (
+        id TEXT PRIMARY KEY,
+        checksum TEXT,
+        applied_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
+    `);
+    await client.query("ALTER TABLE isplay_migrations ADD COLUMN IF NOT EXISTS checksum TEXT");
+    const applied = await client.query<{ id: string; checksum: string | null }>("SELECT id, checksum FROM isplay_migrations");
+    const appliedChecksums = new Map(applied.rows.map((row) => [row.id, row.checksum]));
 
-  for (const migration of MIGRATIONS) {
-    if (appliedIds.has(migration.id)) continue;
-    await pool.query("BEGIN");
-    try {
-      await pool.query(migration.sql);
-      await pool.query("INSERT INTO isplay_migrations (id) VALUES ($1)", [migration.id]);
-      await pool.query("COMMIT");
-    } catch (error) {
-      await pool.query("ROLLBACK");
-      throw error;
+    for (const migration of MIGRATIONS) {
+      const checksum = migrationChecksum(migration.sql);
+      const appliedChecksum = appliedChecksums.get(migration.id);
+      if (appliedChecksum !== undefined) {
+        if (appliedChecksum && appliedChecksum !== checksum) throw new Error(`Migration checksum mismatch for ${migration.id}.`);
+        if (!appliedChecksum) await client.query("UPDATE isplay_migrations SET checksum = $2 WHERE id = $1", [migration.id, checksum]);
+        continue;
+      }
+      await client.query("BEGIN");
+      try {
+        await client.query(migration.sql);
+        await client.query("INSERT INTO isplay_migrations (id, checksum) VALUES ($1, $2)", [migration.id, checksum]);
+        await client.query("COMMIT");
+      } catch (error) {
+        await client.query("ROLLBACK");
+        throw error;
+      }
     }
+  } finally {
+    await client.query("SELECT pg_advisory_unlock(hashtext('isplay:migrations'))").catch(() => undefined);
+    client.release();
   }
+}
+
+function migrationChecksum(sql: string): string {
+  return createHash("sha256").update(sql).digest("hex");
 }
 
 const MIGRATIONS: Array<{ id: string; sql: string }> = [
@@ -102,6 +122,39 @@ const MIGRATIONS: Array<{ id: string; sql: string }> = [
       CREATE INDEX IF NOT EXISTS idx_projections_project_kind ON projections(project_id, kind);
       CREATE INDEX IF NOT EXISTS idx_projections_run_kind ON projections(run_id, kind);
       CREATE INDEX IF NOT EXISTS idx_projections_data_gin ON projections USING GIN (data);
+    `
+  },
+  {
+    id: "0002_v03_record_shape",
+    sql: `
+      UPDATE projects
+      SET data = jsonb_set(data, '{recordVersion}', '1'::jsonb, true)
+      WHERE NOT (data ? 'recordVersion');
+
+      UPDATE runs
+      SET data = jsonb_set(data, '{recordVersion}', '1'::jsonb, true)
+      WHERE NOT (data ? 'recordVersion');
+
+      UPDATE projections
+      SET data = jsonb_set(data, '{recordVersion}', '1'::jsonb, true)
+      WHERE NOT (data ? 'recordVersion');
+
+      UPDATE projections
+      SET data = (data - 'runId') || jsonb_build_object('baseRunId', data->'runId')
+      WHERE kind IN ('replay', 'replay_attempt', 'effect')
+        AND data ? 'runId'
+        AND NOT (data ? 'baseRunId');
+
+      UPDATE projections
+      SET data = (data - 'targetId') || jsonb_build_object(
+        'target',
+        jsonb_build_object('refId', data->>'targetId'),
+        'operations',
+        COALESCE(data->'operations', '[]'::jsonb)
+      )
+      WHERE kind = 'intervention'
+        AND data ? 'targetId'
+        AND NOT (data ? 'target');
     `
   }
 ];

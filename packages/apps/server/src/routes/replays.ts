@@ -1,16 +1,27 @@
 import { createRoute, z, type OpenAPIHono } from "@hono/zod-openapi";
 import { CreateReplaySchema, CreateToolFixtureSchema, EventSchema, FixtureRequirementSchema, ReplaySchema, ToolFixtureSchema } from "@isplay/core";
 import { ErrorResponseSchema, ensureSame, jsonBody, jsonContent, notFound, registerRoute, type AppBindings } from "../http.js";
+import { enqueueReplay } from "../runners/jobs.js";
 import { executeReplay } from "../runners/replay.js";
 import { CreateReplayDoc, CreateToolFixtureDoc, EventDoc, FixtureRequirementDoc, ReplayDoc, ToolFixtureDoc } from "../openapi-schemas.js";
 
 const IdParamsSchema = z.object({ id: z.string() });
+const PageQuerySchema = z.object({
+  limit: z.coerce.number().int().positive().max(500).default(100),
+  offset: z.coerce.number().int().nonnegative().default(0)
+});
 
 export function registerReplayRoutes(app: OpenAPIHono<AppBindings>): void {
   registerRoute(app,
     createRoute({ method: "post", path: "/v1/replays", request: { body: jsonBody(CreateReplayDoc) }, responses: { 201: jsonContent(ReplayDoc, "Replay"), 202: jsonContent(ReplayDoc, "Paused replay"), 400: jsonContent(ErrorResponseSchema, "Invalid request") } }),
     async (c) => {
-      const replay = await c.var.store.createReplay(CreateReplaySchema.parse(c.req.valid("json")));
+      const input = CreateReplaySchema.parse(c.req.valid("json"));
+      const replay = await c.var.store.createReplay(input);
+      if (input.wait === false) {
+        const jobId = await enqueueReplay(c.var.store, replay.id);
+        const queued = await c.var.store.updateReplay(ReplaySchema.parse({ ...replay, metadata: { ...replay.metadata, jobId } }));
+        return c.json(queued, 202);
+      }
       const executed = await executeReplay(c.var.store, replay);
       return c.json(executed, executed.status === "paused" ? 202 : 201);
     }
@@ -21,13 +32,16 @@ export function registerReplayRoutes(app: OpenAPIHono<AppBindings>): void {
     return replay ? c.json(replay, 200) : notFound(c, "Replay");
   });
 
-  registerRoute(app, createRoute({ method: "get", path: "/v1/replays/{id}/events", request: { params: IdParamsSchema }, responses: { 200: jsonContent(z.array(EventDoc), "Replay events") } }), async (c) => {
+  registerRoute(app, createRoute({ method: "get", path: "/v1/replays/{id}/events", request: { params: IdParamsSchema, query: PageQuerySchema }, responses: { 200: jsonContent(z.array(EventDoc), "Replay events") } }), async (c) => {
     const replayId = c.req.valid("param").id;
+    const page = c.req.valid("query");
     const events = await c.var.store.listReplayEvents(replayId);
-    if (events.length) return c.json(events, 200);
+    if (events.length) return c.json(events.slice(page.offset, page.offset + page.limit), 200);
     const replay = await c.var.store.getReplay(replayId);
-    return replay ? c.json(await c.var.store.getEvents(replay.runId), 200) : notFound(c, "Replay");
+    return replay ? c.json(await c.var.store.getEvents(replay.baseRunId, page), 200) : notFound(c, "Replay");
   });
+
+  registerRoute(app, createRoute({ method: "get", path: "/v1/replays/{id}/attempts", request: { params: IdParamsSchema, query: PageQuerySchema }, responses: { 200: jsonContent(z.array(z.any()), "Replay attempts") } }), async (c) => c.json(await c.var.store.listReplayAttempts(c.req.valid("param").id, c.req.valid("query")), 200));
 
   registerRoute(app, createRoute({ method: "get", path: "/v1/replays/{id}/fixture-requirements", request: { params: IdParamsSchema }, responses: { 200: jsonContent(z.array(FixtureRequirementDoc), "Fixture requirements") } }), async (c) => c.json(await c.var.store.listFixtureRequirements(c.req.valid("param").id), 200));
   registerRoute(app, createRoute({ method: "get", path: "/v1/replays/{id}/diff", request: { params: IdParamsSchema }, responses: { 200: jsonContent(z.array(z.any()), "Replay diffs") } }), async (c) => c.json(await c.var.store.listDiffs(c.req.valid("param").id), 200));

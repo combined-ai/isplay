@@ -27,7 +27,7 @@ isplay --json <command>
 | `isplay init` | none | Text path | Creates `.isplay/artifacts`. |
 | `isplay doctor` | global `--json` | Text key/value or JSON | Checks Node version, cwd, Docker availability, and API URL. |
 | `isplay health` | none | JSON | Calls `GET /health`. |
-| `isplay jobs events <jobId>` | none | SSE text | Current server returns simple started/finished events. |
+| `isplay jobs events <jobId>` | none | SSE text | Streams stored job lifecycle events: queued, enqueued, started, then finished or failed. |
 
 ## Project Commands
 
@@ -73,7 +73,7 @@ isplay branch create \
 isplay branch intervene <branchId> \
   --project "$ISPLAY_PROJECT_ID" \
   --kind prompt_patch \
-  --target <targetId> \
+  --target-ref <refId> \
   --patch patch.json \
   --description "Remove one prompt clause"
 ```
@@ -124,8 +124,9 @@ isplay replay <runId> \
 | Command | Purpose |
 | --- | --- |
 | `replay <runId>` | Create and immediately execute a replay. |
+| `replay <runId> --no-wait` | Create a queued replay and store `metadata.jobId`. |
 | `replay get <replayId>` | Fetch replay record. |
-| `replay events <replayId>` | Fetch replay events, falling back to base run events if none were stored. |
+| `replay events <replayId>` | Fetch latest-attempt replay events, falling back to base run events if no attempt exists. |
 | `replay diff <replayId>` | Fetch replay diffs. |
 | `replay metrics <replayId>` | Fetch deterministic metrics. |
 | `replay effects <replayId>` | Fetch replay-level ranked effects. |
@@ -142,11 +143,12 @@ isplay fixtures required <replayId>
 isplay fixtures add <replayId> \
   --project "$ISPLAY_PROJECT_ID" \
   --tool lookup_claim \
-  --file output.json \
-  --args-hash <optional>
+  --output output.json \
+  --args-hash <optional> \
+  --provenance analyst_fixture
 ```
 
-`fixtures add` uses `provenance: "analyst_fixture"` and `author: process.env.USER`. If `--args-hash` is omitted, it looks for an open requirement on that replay and tool.
+`fixtures add` uses `author: process.env.USER`. If `--args-hash` is omitted, it looks for an open requirement on that replay and tool. Use `--matcher` for an explicit matcher object.
 
 ## Discovery And Analysis Commands
 
@@ -183,9 +185,7 @@ isplay experiments effects <experimentId>
 
 `experiments` has alias `experiment`. When `experiments run` receives inline JSON or a `.json` path, it creates and runs a hypothesis batch. Otherwise it runs an existing experiment ID.
 
-<Callout type="warning" title="No-wait caveat">
-`experiments run --no-wait` is parsed by the CLI, but the current server route runs synchronously and returns results.
-</Callout>
+`experiments run --no-wait` enqueues a durable worker job and returns a job id.
 
 ## Effect Commands
 

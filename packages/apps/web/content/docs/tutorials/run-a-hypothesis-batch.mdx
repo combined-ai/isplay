@@ -20,10 +20,10 @@ Write hypotheses from specific observed context items, state fields, model setti
 ```json
 {
   "projectId": "<project id>",
-  "baseRunId": "<run id>",
+  "baseRunIds": ["<run id>"],
   "name": "claim-decision-hypotheses",
-  "checkpoint": { "kind": "name", "value": "before-decision" },
-  "replayPolicy": {
+  "checkpointSelector": { "kind": "name", "value": "before-decision" },
+  "policy": {
     "model": "recorded-only",
     "tool": "pause-for-fixture",
     "drift": "continue_to_terminal",
@@ -32,12 +32,12 @@ Write hypotheses from specific observed context items, state fields, model setti
   "trialPlan": {
     "repetitions": 1,
     "concurrency": 1,
+    "maxReplays": 20,
     "seedPolicy": "none"
   },
   "hypotheses": [
     {
-      "id": "mask-refund-clause",
-      "title": "Refund clause caused the approval",
+      "statement": "Refund clause changed the approval trace",
       "interventions": [
         {
           "kind": "prompt_clause_mask",
@@ -47,8 +47,7 @@ Write hypotheses from specific observed context items, state fields, model setti
       ]
     },
     {
-      "id": "patch-tool-args",
-      "title": "Wrong claim ID caused the lookup",
+      "statement": "Wrong claim ID changed the lookup trace",
       "interventions": [
         {
           "kind": "tool_args_patch",
@@ -69,7 +68,7 @@ npx isplay experiments create batch.json
 npx isplay experiments run <experimentId>
 ```
 
-The current server executes synchronously, so the command returns results rather than only queuing background work.
+By default the command waits and returns results. Use `experiments run <experimentId> --no-wait` when you want a durable worker job instead.
 
 ## 4. Inspect Requirements And Trial Matrix
 

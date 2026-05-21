@@ -15,6 +15,7 @@ import type {
   ToolProposal
 } from "@isplay/core";
 import { BaseResource } from "./base.js";
+import type { PageQuery } from "../paths.js";
 
 export class RunResource extends BaseResource {
   async create(input: CreateRunInput): Promise<Run> {
@@ -25,8 +26,9 @@ export class RunResource extends BaseResource {
     return this.transport.unwrap(await this.transport.client.GET("/v1/runs/{id}", { params: { path: { id } } }), "GET", "/v1/runs/{id}");
   }
 
-  async list(projectId?: string): Promise<Run[]> {
-    const options = projectId ? { params: { query: { projectId } } } : {};
+  async list(projectId?: string, page?: PageQuery): Promise<Run[]> {
+    const query = { ...(projectId ? { projectId } : {}), ...(page ?? {}) };
+    const options = Object.keys(query).length ? { params: { query } } : {};
     return this.transport.unwrap(await this.transport.client.GET("/v1/runs", options), "GET", "/v1/runs");
   }
 
@@ -39,8 +41,8 @@ export class RunResource extends BaseResource {
     return this.transport.unwrap(result, "POST", "/v1/runs/{id}/events:batch");
   }
 
-  async events(runId: string): Promise<EventRecord[]> {
-    return this.transport.unwrap(await this.transport.client.GET("/v1/runs/{id}/events", { params: { path: { id: runId } } }), "GET", "/v1/runs/{id}/events");
+  async events(runId: string, page?: PageQuery): Promise<EventRecord[]> {
+    return this.transport.unwrap(await this.transport.client.GET("/v1/runs/{id}/events", { params: { path: { id: runId }, query: page } }), "GET", "/v1/runs/{id}/events");
   }
 
   async recordModelCall(runId: string, input: ModelCall): Promise<ModelCall> {

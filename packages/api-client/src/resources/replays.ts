@@ -7,9 +7,11 @@ import type {
   FixtureRequirement,
   Metric,
   Replay,
+  ReplayAttempt,
   ToolFixture
 } from "@isplay/core";
 import { BaseResource } from "./base.js";
+import type { PageQuery } from "../paths.js";
 
 export class ReplayResource extends BaseResource {
   async create(input: CreateReplayInput): Promise<Replay> {
@@ -20,8 +22,12 @@ export class ReplayResource extends BaseResource {
     return this.transport.unwrap(await this.transport.client.GET("/v1/replays/{id}", { params: { path: { id } } }), "GET", "/v1/replays/{id}");
   }
 
-  async events(id: string): Promise<EventRecord[]> {
-    return this.transport.unwrap(await this.transport.client.GET("/v1/replays/{id}/events", { params: { path: { id } } }), "GET", "/v1/replays/{id}/events");
+  async events(id: string, page?: PageQuery): Promise<EventRecord[]> {
+    return this.transport.unwrap(await this.transport.client.GET("/v1/replays/{id}/events", { params: { path: { id }, query: page } }), "GET", "/v1/replays/{id}/events");
+  }
+
+  async attempts(id: string, page?: PageQuery): Promise<ReplayAttempt[]> {
+    return this.transport.unwrap(await this.transport.client.GET("/v1/replays/{id}/attempts", { params: { path: { id }, query: page } }), "GET", "/v1/replays/{id}/attempts");
   }
 
   async diff(id: string): Promise<DiffRecord[]> {

@@ -1,4 +1,5 @@
 import type { SideEffectClass } from "@isplay/core";
+import type { IsplaySdk, IsplaySdkOptions } from "@isplay/sdk";
 
 export type MiddlewareInput = {
   params?: Record<string, unknown>;
@@ -8,6 +9,10 @@ export type MiddlewareInput = {
 };
 
 export type AiSdkAdapterOptions = {
+  client?: IsplaySdk;
+  projectId?: string;
+  apiUrl?: string;
+  sdk?: Omit<IsplaySdkOptions, "projectId" | "baseUrl">;
   provider?: string;
   model?: string;
 };

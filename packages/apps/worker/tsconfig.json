@@ -4,7 +4,7 @@
     "rootDir": "src",
     "outDir": "dist"
   },
-  "references": [{ "path": "../../core" }],
+  "references": [{ "path": "../../core" }, { "path": "../../postgres" }, { "path": "../server" }],
   "include": ["src/**/*.ts"],
   "exclude": ["dist", "**/*.test.ts"]
 }

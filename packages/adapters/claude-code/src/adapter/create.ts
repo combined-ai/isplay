@@ -1,11 +1,11 @@
-import { getClient } from "@isplay/sdk";
+import { resolveClient } from "@isplay/adapter-kit";
 import { claudeCodeCapabilities } from "../capabilities/manifest.js";
 import { ClaudeCodeHookHandler } from "../hooks/handler.js";
 import { ClaudeStreamIngestor } from "../stream/ingestor.js";
 import type { ClaudeCodeAdapterOptions, ClaudeCodeHookInput, ClaudeStreamEvent } from "../types.js";
 
 export function createClaudeCodeAdapter(options: ClaudeCodeAdapterOptions = {}) {
-  const client = options.client ?? getClient();
+  const client = resolveClient(options);
   const keyOf = (event: ClaudeCodeHookInput | ClaudeStreamEvent) => options.runKey?.(event) ?? String(event.session_id ?? "claude-code");
   const hooks = new ClaudeCodeHookHandler({
     client,

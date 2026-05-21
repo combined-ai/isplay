@@ -23,8 +23,8 @@ The replay engine compares an observed base run to a branch. It does not try to 
   <Step>Apply intervention transformations where supported.</Step>
   <Step>When a divergent tool output is needed, ask the fixture gateway for a match.</Step>
   <Step>If no fixture matches and policy requires one, emit a requirement and pause.</Step>
-  <Step>If replay can continue, produce branch events and finish status.</Step>
-  <Step>Compute trace, tool, state, metric, and effect output.</Step>
+  <Step>If replay can continue, persist derived replay events, diffs, metrics, and attempt records.</Step>
+  <Step>Compute effect ranking later from replay diffs, metrics, attempts, and fixture uses.</Step>
 </Steps>
 
 ## Fixture Gateway
@@ -42,6 +42,6 @@ The local engine fails fast for live model/tool policies when no executor is wir
 | Replay record | Status, policy, comparability, first divergence, pause/error details. |
 | Replay events | Branch event stream or fallback base events. |
 | Requirements | Open fixture work. |
-| Diffs | Trace, tool, state, output, metric, or causal comparisons. |
+| Diffs | Trace, tool, state, output, metric, or labeled causal-comparison records. |
 | Metrics | Numeric comparison signals. |
 | Effects | Ranked explanation candidates. |

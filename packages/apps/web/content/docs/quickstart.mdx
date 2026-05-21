@@ -1,17 +1,35 @@
 ---
 title: Quickstart
-description: Capture a run after installation and start the first replay-backed investigation.
+description: Run the local stack, capture a tool-backed execution, replay a branch, and inspect bounded evidence.
 ---
 
-Use this page after [installing isplay](/docs/install). If you want the shortest path, use the skill from the install page and let the agent run these steps.
+Use this as the smallest complete local loop. It uses recorded/transform replay: isplay patches recorded evidence and substitutes fixtures. It does not re-run your model or tools unless you wire an explicit executor.
 
-## Capture A Small Run
+## Start Local
 
-```ts
+This page assumes `jq` is installed for shell JSON extraction. Run `npx isplay start` in one terminal and leave it running.
+
+```bash
+npx isplay init
+npx isplay start
+```
+
+In another terminal:
+
+```bash
+export ISPLAY_API_URL=http://127.0.0.1:7373
+export ISPLAY_PROJECT_ID="$(npx isplay projects create --name 'Claims Lab' | jq -r .id)"
+```
+
+## Capture A Run
+
+Create `capture-demo.mjs`:
+
+```js
 import { init } from "@isplay/sdk";
 
 const client = init({
-  projectId: process.env.ISPLAY_PROJECT_ID!,
+  projectId: process.env.ISPLAY_PROJECT_ID,
   baseUrl: process.env.ISPLAY_API_URL,
   serviceName: "claims-agent",
 });
@@ -23,49 +41,83 @@ await client.withRun({ name: "claim-review" }, async () => {
     value: "Prefer policy-grounded answers.",
   });
 
-  await client.checkpoint("before-decision", {
-    claimId: "C-104",
-    stage: "ready",
+  const model = await client.startModelCall({
+    provider: "example",
+    model: "recorded-demo",
+    operation: "generate",
+    params: { claimId: "C-104" },
   });
+
+  const proposal = await client.recordToolProposal({
+    modelCallId: model.id,
+    toolName: "policy_search",
+    args: { claimId: "C-104", query: "eligibility" },
+  });
+
+  const execution = await client.startToolExecution({
+    proposalId: proposal.id,
+    toolCallId: proposal.toolCallId,
+    toolName: "policy_search",
+    args: { claimId: "C-104", query: "eligibility" },
+    sideEffectClass: "read",
+  });
+
+  await client.finishToolExecution(execution, {
+    output: { eligible: false, reason: "missing receipt" },
+  });
+  await client.finishModelCall(model, { output: { decision: "deny" } });
+
+  await client.checkpoint("before-decision", { claimId: "C-104", stage: "ready" });
 });
 ```
 
-## Inspect The Run
-
-<Steps>
-  <Step>
-    Find the captured run.
+Then run it:
 
 ```bash
-npx isplay runs list --project "$ISPLAY_PROJECT_ID"
+node capture-demo.mjs
 ```
 
-  </Step>
-  <Step>
-    Discover the trace.
+## Branch And Replay
 
 ```bash
-npx isplay discover run <runId>
-npx isplay runs context <runId>
-npx isplay runs checkpoints <runId>
+RUN_ID="$(npx isplay runs list --project "$ISPLAY_PROJECT_ID" | jq -r '.[0].id')"
+CHECKPOINT_ID="$(npx isplay runs checkpoints "$RUN_ID" | jq -r '.[0].id')"
+BRANCH_ID="$(npx isplay branch create --project "$ISPLAY_PROJECT_ID" --from "$RUN_ID" --checkpoint "$CHECKPOINT_ID" --name receipt-found | jq -r .id)"
+
+cat > patch.json <<'JSON'
+{ "args": { "claimId": "C-104", "query": "eligibility with receipt" } }
+JSON
+
+npx isplay branch intervene "$BRANCH_ID" \
+  --project "$ISPLAY_PROJECT_ID" \
+  --kind tool_args_patch \
+  --target-tool policy_search \
+  --patch patch.json
+
+REPLAY_ID="$(npx isplay replay "$RUN_ID" --project "$ISPLAY_PROJECT_ID" --branch "$BRANCH_ID" | jq -r .id)"
+npx isplay replay events "$REPLAY_ID"
+npx isplay replay diff "$REPLAY_ID"
 ```
 
-  </Step>
-  <Step>
-    Ask the skill to investigate.
+If replay pauses for a fixture, add a fixture with explicit provenance, then resume:
 
-```text
-Use $isplay-analysis. Inspect run <runId>, branch likely hypotheses, replay likely branches, resolve fixture requirements when safe, and return an evidence-bounded RCA report with validity labels.
+```bash
+npx isplay fixtures add "$REPLAY_ID" \
+  --project "$ISPLAY_PROJECT_ID" \
+  --tool policy_search \
+  --matcher '{"argsHash":"<args-hash-from-requirement>"}' \
+  --output '{"eligible":true,"reason":"receipt found"}' \
+  --provenance analyst_fixture
+
+npx isplay replay resume "$REPLAY_ID"
 ```
 
-  </Step>
-</Steps>
+## Background Jobs
 
-## Continue
+```bash
+REPLAY_ID="$(npx isplay replay "$RUN_ID" --project "$ISPLAY_PROJECT_ID" --branch "$BRANCH_ID" --no-wait | jq -r .id)"
+JOB_ID="$(npx isplay replay get "$REPLAY_ID" | jq -r .metadata.jobId)"
+npx isplay jobs events "$JOB_ID"
+```
 
-<Cards>
-  <Card title="Install" href="/docs/install" description="Skill install, manual adapter setup, and capture wiring." />
-  <Card title="First captured run" href="/docs/tutorials/first-captured-run" description="A complete SDK capture tutorial." />
-  <Card title="Start analyzing" href="/docs/guides/start-analyzing" description="Discovery, replay, effects, and reporting." />
-  <Card title="Integrations" href="/docs/integrations" description="Choose and wire the adapter for your runtime." />
-</Cards>
+The job feed is durable SSE over stored job events. `isplay start` runs the API and local Graphile worker.

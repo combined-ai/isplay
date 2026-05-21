@@ -13,7 +13,7 @@ const client = init({
   serviceName: "custom-framework",
 });
 
-const kit = createAdapterKit(client);
+const kit = createAdapterKit({ client });
 
 const lookupClaim = kit.wrapTool(
   {

@@ -22,14 +22,14 @@ const client = init({
   baseUrl: process.env.ISPLAY_API_URL,
 });
 
-const kit = createAdapterKit(client);
+const kit = createAdapterKit({ client });
 ```
 
 ## Exports
 
 | Export | Purpose |
 | --- | --- |
-| `createAdapterKit(client?)` | Returns annotations, model capture, framework event capture, tool wrapper, and checkpoint helper. |
+| `createAdapterKit({ client })` | Returns annotations, model capture, framework event capture, tool wrapper, and checkpoint helper. |
 | `annotateContext(kind, path, value, options?)` | Build a context annotation spec. |
 | `systemPrompt`, `developerPrompt`, `userMessage`, `assistantMessage` | Mark prompt values while preserving their runtime value. |
 | `promptClause`, `retrievalChunk`, `memoryItem`, `stateField`, `toolSchema` | Mark common context targets. |

@@ -1,13 +1,38 @@
 {
   "name": "@isplay/core",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./dist/index.js"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   },
   "dependencies": {
     "zod": "^4.1.13"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/isplay/isplay.git"
+  },
+  "bugs": {
+    "url": "https://github.com/isplay/isplay/issues"
+  },
+  "homepage": "https://isplay.dev",
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "description": "Core schemas, IDs, JSON helpers, capture policy, and redaction for isplay.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.5.0"
   }
 }

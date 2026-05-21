@@ -38,10 +38,10 @@ The schema accepts arbitrary strings, so adapters can emit framework events such
 
 ## Sequence Semantics
 
-The SDK uses async run context to allocate event sequence numbers during a run. The Postgres store enforces uniqueness on `(run_id, seq)` and treats duplicate inserts as ignored rows.
+The SDK uses async run context to allocate event sequence numbers during a run. The Postgres store validates contiguous batch order, rejects appends after a run is terminal, and enforces uniqueness on `(run_id, seq)`.
 
-<Callout type="warn" title="Duplicate sequence numbers">
-Duplicate `(runId, seq)` inserts make event appends idempotent, but a broken producer that reuses sequence numbers can silently lose later events. If trace order looks wrong, inspect event sequences first.
+<Callout type="info" title="Idempotency and conflicts">
+Retrying the exact same event at the same `(runId, seq)` is idempotent. Reusing a sequence number with different event content is a conflict, because silently dropping a divergent event would corrupt the trace.
 </Callout>
 
 ## What Belongs In `data`

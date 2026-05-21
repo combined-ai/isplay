@@ -1,16 +1,19 @@
 {
   "name": "@isplay/adapter-langgraph",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./dist/index.js"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   },
   "dependencies": {
-    "@isplay/adapter-kit": "0.2.0",
-    "@isplay/core": "0.2.0",
-    "@isplay/sdk": "0.2.0"
+    "@isplay/adapter-kit": "0.3.0",
+    "@isplay/core": "0.3.0",
+    "@isplay/sdk": "0.3.0"
   },
   "peerDependencies": {
     "@langchain/langgraph": ">=1.0.0"
@@ -19,5 +22,27 @@
     "@langchain/langgraph": {
       "optional": true
     }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/isplay/isplay.git"
+  },
+  "bugs": {
+    "url": "https://github.com/isplay/isplay/issues"
+  },
+  "homepage": "https://isplay.dev",
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "description": "LangGraph node, model, stream, and tool instrumentation for isplay.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.5.0"
   }
 }

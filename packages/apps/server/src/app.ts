@@ -21,7 +21,7 @@ export function createApp(store: IsplayStore) {
     openapi: "3.0.0",
     info: {
       title: "isplay API",
-      version: "0.2.0"
+      version: "0.3.0"
     }
   });
 
@@ -37,10 +37,9 @@ export function createApp(store: IsplayStore) {
 
   app.get("/v1/jobs/:id/events", async (c) => {
     const id = c.req.param("id");
-    return streamSse(c, [
-      { event: "job.started", data: { id } },
-      { event: "job.finished", data: { id } }
-    ]);
+    const events = await store.listDurableJobEvents(id);
+    if (!events.length && !(await store.getDurableJob(id))) return c.json({ error: "Job not found" }, 404);
+    return streamSse(c, events.map((event) => ({ event: event.event, data: event })));
   });
 
   return app;

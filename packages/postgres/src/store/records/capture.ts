@@ -60,8 +60,14 @@ export class CaptureStore extends ProjectRunStore {
   async getArtifact(id: string): Promise<(Artifact & { payload?: JsonValue }) | undefined> {
     const artifact = await this.getData("artifacts", id, ArtifactSchema.parse);
     if (!artifact) return undefined;
-    const file = await readFile(artifactPath(this.artifactsDir, artifact.objectKey), "utf8").catch(() => undefined);
-    return { ...artifact, payload: file ? (JSON.parse(file) as JsonValue) : undefined };
+    const filePath = artifactPath(this.artifactsDir, artifact.objectKey);
+    const file = await readFile(filePath).catch((error: NodeJS.ErrnoException) => {
+      if (error.code === "ENOENT") throw new Error(`Artifact payload missing: ${artifact.id}`);
+      throw error;
+    });
+    const actualHash = createHash("sha256").update(file).digest("hex");
+    if (actualHash !== artifact.sha256) throw new Error(`Artifact payload corrupt: ${artifact.id}`);
+    return { ...artifact, payload: JSON.parse(file.toString("utf8")) as JsonValue };
   }
 
   async createCheckpoint(input: CreateCheckpointInput): Promise<Checkpoint> {

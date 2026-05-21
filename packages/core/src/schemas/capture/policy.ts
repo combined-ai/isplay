@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const CaptureActionSchema = z.enum(["capture", "drop", "hash", "mask", "encrypt", "artifact_only", "metadata_only"]);
+export const CaptureActionSchema = z.enum(["capture", "drop", "hash", "mask"]);
 export type CaptureAction = z.infer<typeof CaptureActionSchema>;
 
 export const CapturePolicySchema = z.object({

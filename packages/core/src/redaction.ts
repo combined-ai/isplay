@@ -28,7 +28,7 @@ function visit(value: JsonValue, path: string[], policy: CapturePolicy, report: 
     report.fieldsDropped += 1;
     return null;
   }
-  if (action === "mask" || action === "metadata_only" || action === "artifact_only" || action === "encrypt") {
+  if (action === "mask") {
     report.fieldsMasked += 1;
     return "[REDACTED]";
   }

@@ -1,25 +1,18 @@
 ---
 title: Worker Jobs
-description: Current worker handler status and job events behavior.
+description: Operating durable local replay and experiment jobs.
 ---
 
-The worker surface exists but is not yet the execution path for replay or experiments.
+`isplay start` starts the API and a Graphile Worker runner. `wait=false` replay and experiment requests enqueue durable jobs and write job lifecycle events.
 
-## Registered Tasks
-
-`@isplay/worker` registers handlers for:
+## Tasks
 
 ```text
-replay.exact
+replay.run
 experiment.run
-diff.compute
-metrics.compute
-export.create
 ```
 
-Current handlers log payloads. They do not execute durable background jobs.
-
-## Job Events
+## Read Events
 
 ```bash
 npx isplay jobs events <jobId>
@@ -31,10 +24,10 @@ This calls:
 GET /v1/jobs/{id}/events
 ```
 
-The server returns a simple SSE stream with `job.started` and `job.finished` for the requested ID.
+The server emits SSE from stored job events, including `job.queued`, `job.enqueued`, `job.started`, and either `job.finished` or `job.failed`.
 
-## Practical Meaning
+## Notes
 
-- `experiments run --no-wait` is not a real detached background run in the current server.
-- Replay and experiments execute synchronously.
-- Do not build production automation that depends on persisted job status yet.
+- Replay job ids are stored on the queued replay as `metadata.jobId`.
+- Experiment `wait=false` returns `{ jobId, experimentId, status: "queued" }`.
+- Per-step replay streaming is not implemented; use replay attempts and replay events after completion for details.

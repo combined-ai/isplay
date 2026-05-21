@@ -84,7 +84,7 @@ try {
 | --- | --- | --- |
 | `withRun()` | no | Use for top-level executions. |
 | `withRunContext()` | no | Use when a runtime already created a run. |
-| `recordEvent()` | yes, otherwise no-op | Use for compact framework events. |
+| `recordEvent()` | yes, otherwise throws | Use for compact framework events. Use `tryRecordEvent()` for intentional optional capture. |
 | `annotateContext()` | yes | Add prompt, retrieval, memory, state, schemas, settings. |
 | `checkpoint()` | yes | Place before branchable decisions. |
 | `startModelCall()` / `finishModelCall()` | yes | Always finish in `finally` or error path. |

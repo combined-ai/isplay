@@ -1,13 +1,12 @@
-import { createAdapterKit } from "@isplay/adapter-kit";
+import { createAdapterKit, resolveClient } from "@isplay/adapter-kit";
 import { allowAllFixtures, RuntimeRunRegistry, sideEffectFromToolName, toJsonValue } from "@isplay/adapter-runtime";
-import { getClient } from "@isplay/sdk";
 import { openClawCapabilities } from "../capabilities/manifest.js";
 import { recordOpenClawContext } from "../context/inventory.js";
 import type { OpenClawAdapterOptions, OpenClawHookEvent, OpenClawPluginApi } from "../types.js";
 
 export function createOpenClawAdapter(options: OpenClawAdapterOptions = {}) {
-  const client = options.client ?? getClient();
-  const kit = createAdapterKit(client);
+  const client = resolveClient(options);
+  const kit = createAdapterKit({ client });
   const runs = new RuntimeRunRegistry(client);
   const fixtureGateway = options.fixtureGateway ?? allowAllFixtures;
   const modelCalls = new Map<string, Awaited<ReturnType<typeof client.startModelCall>>>();

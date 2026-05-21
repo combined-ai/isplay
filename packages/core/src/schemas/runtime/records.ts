@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { JsonValueSchema, MetadataSchema } from "../common/json.js";
 
+export const DurableIdSchema = z.string().regex(/^[a-z][a-z0-9_]*_[A-Za-z0-9]+$/, "Expected an isplay id with a durable prefix.");
+export const IsoTimestampSchema = z.string().datetime({ offset: true });
+
 export const RunStatusSchema = z.enum(["running", "ok", "error", "cancelled"]);
 
 export const EventTypeSchema = z.enum([
@@ -24,8 +27,9 @@ export const EventTypeSchema = z.enum([
 ]);
 
 export const BaseRecordSchema = z.object({
-  id: z.string(),
-  createdAt: z.string()
+  id: DurableIdSchema,
+  createdAt: IsoTimestampSchema,
+  recordVersion: z.number().int().positive().default(1)
 });
 
 export const ProjectSchema = BaseRecordSchema.extend({

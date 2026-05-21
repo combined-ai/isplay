@@ -1,4 +1,4 @@
-import { getClient, type IsplaySdk } from "@isplay/sdk";
+import { IsplaySdk, type IsplaySdkOptions } from "@isplay/sdk";
 import {
   assistantMessage,
   developerPrompt,
@@ -15,7 +15,10 @@ import {
 import { captureModelCall, recordFrameworkEvent } from "./capture.js";
 import { wrapTool } from "./tools.js";
 
-export function createAdapterKit(client: IsplaySdk = getClient()) {
+export type AdapterKitOptions = { client?: IsplaySdk; projectId?: string; apiUrl?: string; sdk?: Omit<IsplaySdkOptions, "projectId" | "baseUrl"> };
+
+export function createAdapterKit(options: AdapterKitOptions) {
+  const client = resolveClient(options);
   return {
     client,
     annotations: {
@@ -36,4 +39,10 @@ export function createAdapterKit(client: IsplaySdk = getClient()) {
     wrapTool: wrapTool.bind(undefined, client),
     checkpoint: client.checkpoint.bind(client)
   };
+}
+
+export function resolveClient(options: AdapterKitOptions): IsplaySdk {
+  if (options.client) return options.client;
+  if (options.projectId) return new IsplaySdk({ projectId: options.projectId, baseUrl: options.apiUrl, ...(options.sdk ?? {}) });
+  throw new Error("isplay adapters require an explicit client or projectId. Pass getClient() explicitly if you want environment-based convenience.");
 }

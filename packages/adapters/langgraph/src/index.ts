@@ -1,13 +1,13 @@
-import { createAdapterKit, wrapTool as wrapIsplayTool } from "@isplay/adapter-kit";
-import { getClient, type IsplaySdk } from "@isplay/sdk";
+import { createAdapterKit, resolveClient, wrapTool as wrapIsplayTool } from "@isplay/adapter-kit";
+import type { IsplaySdk } from "@isplay/sdk";
 import { wrapChatModel } from "./model.js";
 import { checkpointState, wrapNode } from "./nodes.js";
 import { instrumentStream, recordStreamChunk } from "./stream.js";
 import type { LangGraphAdapterOptions, LangGraphToolOptions } from "./types.js";
 
 export function createLangGraphAdapter(options: LangGraphAdapterOptions = {}) {
-  const client: IsplaySdk = options.client ?? getClient();
-  const kit = createAdapterKit(client);
+  const client: IsplaySdk = resolveClient(options);
+  const kit = createAdapterKit({ client });
   return {
     ...kit,
     framework: options.framework ?? "langgraph",

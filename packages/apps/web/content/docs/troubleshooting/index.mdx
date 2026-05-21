@@ -33,7 +33,7 @@ description: Fast diagnosis for setup, capture, replay, fixture, experiment, ada
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
-| `--no-wait` still returns results | Current server is synchronous | Treat no-wait as future-facing. |
+| `--no-wait` has no visible progress | Worker has not started or job id was not read | Run `isplay start`, then inspect `metadata.jobId` or the returned experiment job id with `isplay jobs events`. |
 | Low confidence | Too few repetitions | Increase repetitions and reduce fixture dependence. |
 | Many requirements | Branches changed tool inputs broadly | Narrow targets or prepare fixtures. |
 

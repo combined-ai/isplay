@@ -36,7 +36,7 @@ export ISPLAY_PROJECT_ID=project_...
 
 ## Known Current Limits
 
-The current server runs replay and experiments synchronously. Worker handlers are registered as stubs. If you need high-volume asynchronous replay, treat that as an integration project rather than a toggle.
+The local server can enqueue replay and experiment jobs with Graphile Worker, but high-volume asynchronous replay still needs production-grade worker sizing, artifact storage, retry policy, and monitoring.
 
 ## Verification Commands
 

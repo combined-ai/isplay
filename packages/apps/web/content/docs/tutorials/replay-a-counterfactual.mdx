@@ -43,7 +43,7 @@ Attach it as a state patch:
 npx isplay branch intervene <branchId> \
   --project "$ISPLAY_PROJECT_ID" \
   --kind state_patch \
-  --target state.claim.status \
+  --target-context-path state.claim.status \
   --patch patch.json \
   --description "Change claim status before decision"
 ```

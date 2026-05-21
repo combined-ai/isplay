@@ -1,9 +1,9 @@
 ---
 title: Experiments, Effects, And Statistics
-description: Hypothesis batches, arms, trials, statistics, validity gates, and ranked effects.
+description: Hypothesis batches, arms, replay trial indexes, statistics, validity gates, and ranked effects.
 ---
 
-Experiments let you test several hypotheses or repeat one hypothesis across trials. They are built on the same primitives as manual replay: checkpoints, branches, interventions, policies, fixture requirements, diffs, metrics, and effects.
+Experiments let you test several hypotheses or repeat one hypothesis across replay trial indexes. They are built on the same primitives as manual replay: checkpoints, branches, interventions, policies, fixture requirements, diffs, metrics, and effects.
 
 ## Experiment Vocabulary
 
@@ -11,7 +11,7 @@ Experiments let you test several hypotheses or repeat one hypothesis across tria
 | --- | --- |
 | Hypothesis | A claim worth testing, usually mapped to one or more interventions. |
 | Arm | One concrete branch/replay configuration inside an experiment. |
-| Trial | One replay attempt for an arm. |
+| Trial index | A repetition number stored on a replay inside an experiment arm. It is not a durable record type. |
 | Trial plan | Repetitions, concurrency, max replays, seed policy, and stop rule. |
 | Validity gate | Rule that determines whether evidence is strong enough to label. |
 | Statistics | Counts, rates, confidence intervals, and effect summaries. |
@@ -19,7 +19,7 @@ Experiments let you test several hypotheses or repeat one hypothesis across tria
 
 ## What The Current Runner Does
 
-The server can create experiments, materialize branches and arms, run replays, collect requirements, compute trial matrices, summarize statistics, and rank effects. The current implementation is synchronous and serial even though schemas include fields such as `concurrency`, `maxReplays`, and `stopRule`.
+The server can create experiments, materialize branches and arms, run replays, collect requirements, compute trial matrices, summarize statistics, and rank effects. `wait=true` runs inline; `wait=false` enqueues a durable local worker job. The current runner still executes replay work serially even though schemas include fields such as `concurrency`, `maxReplays`, and `stopRule`.
 
 <Callout type="warn" title="Low-N discipline">
 One replay can support a useful debugging lead. It is not a statistical claim. Repeat trials, inspect fixture dependency, and report validity labels before treating an effect as supported.
@@ -49,7 +49,7 @@ One replay can support a useful debugging lead. It is not a statistical claim. R
 
 Treat statistics as a compact evidence summary:
 
-- Trial counts tell you whether the sample is large enough to trust.
+- Trial-index counts tell you whether the sample is large enough to trust.
 - Fixture dependency rates tell you whether outputs rely on supplied data.
 - Non-comparable rates tell you whether the experiment design is too broad.
 - Confidence intervals should be read as caution signals, especially with low trial counts.

@@ -47,7 +47,7 @@ Use a broader fixture when:
 Fixture dependence should appear in final RCA wording. For example:
 
 ```text
-Under recorded model replay and an analyst fixture for `lookup_policy`, removing the refund clause changed the tool args at the first divergence. This finding is sensitive_to_fixture because the downstream output depends on the supplied fixture.
+Under recorded model replay and an analyst fixture for `lookup_policy`, removing the refund clause changed the tool args at the first divergence. This finding is sensitive_to_fixture because the transformed replay comparison depends on the supplied fixture; it is not evidence of recomputed downstream runtime behavior without an executor-backed replay.
 ```
 
 The important part is not the exact phrasing. The important part is that provenance and dependency are visible.

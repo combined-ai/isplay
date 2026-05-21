@@ -28,7 +28,7 @@ const client = init({
   serviceName: "custom-agent",
 });
 
-const kit = createAdapterKit(client);
+const kit = createAdapterKit({ client });
 
 const search = kit.wrapTool(
   {

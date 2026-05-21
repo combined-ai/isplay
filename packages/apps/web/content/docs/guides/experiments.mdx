@@ -5,6 +5,8 @@ description: Batch hypotheses, run repeated replay trials, resolve requirements,
 
 Experiments scale the branch-and-replay loop. Use them when you have several plausible causes, need repeated trials, or want one structured result that includes requirements, trial matrix, statistics, and ranked effects.
 
+A hypothesis may have an empty `interventions` array. That creates a control arm that replays from the selected checkpoint without a branch mutation, which is useful for smoke tests and baseline comparability checks.
+
 ## Experiment Shape
 
 ```json
@@ -81,7 +83,13 @@ Creates the experiment, hypotheses, branches, interventions, and arms without im
 npx isplay experiments run <experimentId>
 ```
 
-Runs current arms. The current server runner is synchronous and serial even though the schema includes `wait`, `concurrency`, and `maxReplays`.
+Runs current arms inline in this API request. Replay execution inside one experiment is currently serial even though the schema includes `concurrency`, `maxReplays`, and `stopRule`.
+
+Use `--no-wait` to enqueue the same experiment through the durable local worker:
+
+```bash
+npx isplay experiments run <experimentId> --no-wait
+```
 
   </Tab>
   <Tab>
@@ -155,7 +163,7 @@ Read experiment output in this order:
 - Use `minimum_trials` gates when writing comparative claims.
 - Use branch-scoped fixtures for repeated trials of the same intervention.
 - Run alternate fixtures when the tool output is the suspected cause.
-- Treat `--no-wait` as future-facing: the current server route still returns after synchronous execution.
+- Use `--no-wait` to enqueue a durable local worker job; use `isplay jobs events <jobId>` to inspect lifecycle events.
 
 <Callout type="info" title="Low-N interpretation">
 A single replay can identify a promising effect, but it should usually be called inconclusive. Repeated comparable trials and fixture sensitivity checks are what make a finding robust.

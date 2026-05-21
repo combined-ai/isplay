@@ -23,7 +23,11 @@ import {
 } from "../openapi-schemas.js";
 
 const IdParamsSchema = z.object({ id: z.string() });
-const RunListQuerySchema = z.object({ projectId: z.string().optional() });
+const PageQuerySchema = z.object({
+  limit: z.coerce.number().int().positive().max(500).default(100),
+  offset: z.coerce.number().int().nonnegative().default(0)
+});
+const RunListQuerySchema = PageQuerySchema.extend({ projectId: z.string().optional() });
 const PatchRunSchema = z.object({
   agentId: z.string().optional(),
   name: z.string().optional(),
@@ -41,7 +45,10 @@ export function registerRunRoutes(app: OpenAPIHono<AppBindings>): void {
   registerRoute(app, bodyRoute("post", "/v1/runs", CreateRunDoc, RunDoc, "Created run", 201), async (c) => c.json(await c.var.store.createRun(CreateRunSchema.parse(c.req.valid("json"))), 201));
   registerRoute(app,
     createRoute({ method: "get", path: "/v1/runs", request: { query: RunListQuerySchema }, responses: { 200: jsonContent(z.array(RunDoc), "Runs") } }),
-    async (c) => c.json(await c.var.store.listRuns(c.req.valid("query").projectId), 200)
+    async (c) => {
+      const query = c.req.valid("query");
+      return c.json(await c.var.store.listRuns(query.projectId, query), 200);
+    }
   );
   registerRoute(app, createRoute({ method: "get", path: "/v1/runs/{id}", request: { params: IdParamsSchema }, responses: { 200: jsonContent(RunDoc, "Run"), 404: jsonContent(ErrorResponseSchema, "Run not found") } }), async (c) => {
     const run = await c.var.store.getRun(c.req.valid("param").id);
@@ -54,7 +61,7 @@ export function registerRunRoutes(app: OpenAPIHono<AppBindings>): void {
     for (const event of body.events) ensureSame(event.runId, runId, "Path run id and event runId differ");
     return c.json({ inserted: await c.var.store.appendEvents(runId, body.events) }, 200);
   });
-  registerRoute(app, createRoute({ method: "get", path: "/v1/runs/{id}/events", request: { params: IdParamsSchema }, responses: { 200: jsonContent(z.array(EventDoc), "Run events") } }), async (c) => c.json(await c.var.store.getEvents(c.req.valid("param").id), 200));
+  registerRoute(app, createRoute({ method: "get", path: "/v1/runs/{id}/events", request: { params: IdParamsSchema, query: PageQuerySchema }, responses: { 200: jsonContent(z.array(EventDoc), "Run events") } }), async (c) => c.json(await c.var.store.getEvents(c.req.valid("param").id, c.req.valid("query")), 200));
   registerRoute(app, bodyRoute("post", "/v1/artifacts", CreateArtifactDoc, ArtifactDoc, "Created artifact", 201), async (c) => c.json(await c.var.store.createArtifact(CreateArtifactSchema.parse(c.req.valid("json"))), 201));
   registerRoute(app, createRoute({ method: "get", path: "/v1/artifacts/{id}", request: { params: IdParamsSchema }, responses: { 200: jsonContent(ArtifactDoc, "Artifact"), 404: jsonContent(ErrorResponseSchema, "Artifact not found") } }), async (c) => {
     const artifact = await c.var.store.getArtifact(c.req.valid("param").id);

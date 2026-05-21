@@ -71,13 +71,36 @@ export const InterventionKindSchema = z.enum([
 ]);
 export type InterventionKind = z.infer<typeof InterventionKindSchema>;
 
+export const InterventionTargetSchema = z.object({
+  refId: z.string().optional(),
+  eventId: z.string().optional(),
+  eventType: z.string().optional(),
+  toolName: z.string().optional(),
+  modelCallId: z.string().optional(),
+  artifactId: z.string().optional(),
+  contextItemId: z.string().optional(),
+  contextPath: z.string().optional(),
+  jsonPointer: z.string().optional()
+});
+export type InterventionTarget = z.infer<typeof InterventionTargetSchema>;
+
+export const PatchOperationSchema = z.object({
+  op: z.enum(["add", "remove", "replace", "move", "copy", "test", "mask_span", "replace_text"]),
+  path: z.string(),
+  value: JsonValueSchema.optional(),
+  from: z.string().optional()
+});
+export type PatchOperation = z.infer<typeof PatchOperationSchema>;
+
 export const InterventionSchema = BaseRecordSchema.extend({
   projectId: z.string(),
   branchId: z.string(),
   kind: InterventionKindSchema,
-  targetId: z.string().optional(),
+  target: InterventionTargetSchema.default({}),
+  operations: z.array(PatchOperationSchema).default([]),
   description: z.string().optional(),
   patch: JsonValueSchema.optional(),
+  expectedBaseHash: z.string().optional(),
   metadata: MetadataSchema
 });
 export type Intervention = z.infer<typeof InterventionSchema>;
@@ -93,24 +116,18 @@ export const BranchSchema = BaseRecordSchema.extend({
 });
 export type Branch = z.infer<typeof BranchSchema>;
 
-export const TrialSchema = BaseRecordSchema.extend({
-  projectId: z.string(),
-  branchId: z.string(),
-  trialIndex: z.number().int().nonnegative(),
-  seed: z.string().optional(),
-  replayPolicy: ReplayPolicySchema,
-  status: z.enum(["queued", "running", "paused", "ok", "error"]),
-  metadata: MetadataSchema
-});
-export type Trial = z.infer<typeof TrialSchema>;
-
 export const ReplaySchema = BaseRecordSchema.extend({
   projectId: z.string(),
-  runId: z.string(),
+  baseRunId: z.string(),
   branchId: z.string().optional(),
-  trialId: z.string().optional(),
+  experimentId: z.string().optional(),
+  armId: z.string().optional(),
+  trialIndex: z.number().int().nonnegative().optional(),
   status: z.enum(["queued", "running", "paused", "ok", "error"]),
   policy: ReplayPolicySchema,
+  startedAt: z.string().optional(),
+  endedAt: z.string().optional(),
+  latestAttemptId: z.string().optional(),
   firstDivergenceEventId: z.string().optional(),
   comparability: ComparabilitySchema.optional(),
   pausedRequirementId: z.string().optional(),

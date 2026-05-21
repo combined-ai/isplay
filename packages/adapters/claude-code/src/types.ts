@@ -1,8 +1,11 @@
-import type { IsplaySdk } from "@isplay/sdk";
+import type { IsplaySdk, IsplaySdkOptions } from "@isplay/sdk";
 import type { RuntimeFixtureGateway } from "@isplay/adapter-runtime";
 
 export type ClaudeCodeAdapterOptions = {
   client?: IsplaySdk;
+  projectId?: string;
+  apiUrl?: string;
+  sdk?: Omit<IsplaySdkOptions, "projectId" | "baseUrl">;
   fixtureGateway?: RuntimeFixtureGateway;
   runKey?: (event: ClaudeCodeHookInput | ClaudeStreamEvent) => string;
   replacementMode?: "defer" | "post_tool_context";

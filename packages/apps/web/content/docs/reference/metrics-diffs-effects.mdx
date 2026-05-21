@@ -17,6 +17,8 @@ causal
 
 Each diff has `projectId`, `replayId`, `kind`, `comparability`, `patch`, optional `summary`, and metadata.
 
+`causal` is a labeled comparison record, not proof that downstream runtime behavior was recomputed. Treat it according to the replay mode and executor support used for that run.
+
 ## Comparability
 
 ```text

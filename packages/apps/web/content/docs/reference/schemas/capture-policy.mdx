@@ -21,9 +21,6 @@ capture
 drop
 hash
 mask
-encrypt
-artifact_only
-metadata_only
 ```
 
 ## Current Action Behavior
@@ -34,9 +31,8 @@ metadata_only
 | `drop` | Replace field with `null`. |
 | `hash` | Replace with `[HASHED]`. |
 | `mask` | Replace with `[REDACTED]`. |
-| `encrypt` | Replace with `[REDACTED]`; no encryption implementation is wired. |
-| `artifact_only` | Replace with `[REDACTED]`. |
-| `metadata_only` | Replace with `[REDACTED]`. |
+
+`encrypt`, `artifact_only`, and `metadata_only` are not capture policy actions in v0.3. Use explicit artifact storage and context metadata when you need those semantics.
 
 ## RedactionReport
 

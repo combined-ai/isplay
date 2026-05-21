@@ -38,9 +38,11 @@ export type ReplayFailure = z.infer<typeof ReplayFailureSchema>;
 export const ReplayAttemptSchema = BaseRecordSchema.extend({
   projectId: z.string(),
   replayId: z.string(),
-  runId: z.string(),
+  baseRunId: z.string(),
   branchId: z.string().optional(),
-  trialId: z.string().optional(),
+  experimentId: z.string().optional(),
+  armId: z.string().optional(),
+  trialIndex: z.number().int().nonnegative().optional(),
   status: z.enum(["running", "paused", "ok", "error", "non_comparable"]),
   mode: z.enum(["recorded", "counterfactual", "determinism_probe", "live_probe"]),
   policy: ReplayPolicySchema,

@@ -1,4 +1,5 @@
 import type { Command } from "commander";
+import { CreateReplaySchema } from "@isplay/core";
 import { createApiClient, requiredProjectId } from "../lib/api.js";
 import { printJson } from "../lib/output.js";
 
@@ -44,6 +45,7 @@ export function registerReplayCommands(program: Command): void {
     .option("--branch <branchId>", "Branch id")
     .option("--model-policy <policy>", "Model replay policy", "recorded-only")
     .option("--tool-policy <policy>", "Tool replay policy", "pause-for-fixture")
+    .option("--no-wait", "Queue replay work and return immediately")
     .action(createReplayAction);
 
   program
@@ -57,20 +59,21 @@ export function registerReplayCommands(program: Command): void {
 
 async function createReplayAction(
   runId: string,
-  options: { project?: string; branch?: string; modelPolicy: string; toolPolicy: string }
+  options: { project?: string; branch?: string; modelPolicy: string; toolPolicy: string; wait?: boolean }
 ): Promise<void> {
   const projectId = requiredProjectId(options.project);
   printJson(
-    await createApiClient().createReplay({
+    await createApiClient().createReplay(CreateReplaySchema.parse({
       projectId,
-      runId,
+      baseRunId: runId,
       branchId: options.branch,
+      wait: options.wait,
       policy: {
-        model: options.modelPolicy as never,
-        tool: options.toolPolicy as never,
+        model: options.modelPolicy,
+        tool: options.toolPolicy,
         drift: "continue_to_terminal",
         maxSteps: 100
       }
-    })
+    }))
   );
 }

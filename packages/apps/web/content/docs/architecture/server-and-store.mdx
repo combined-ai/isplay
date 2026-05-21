@@ -13,7 +13,7 @@ The server is a Hono app with zod-openapi route definitions. It publishes OpenAP
 | Enforce path/body ID consistency | Prevents writing a record under the wrong run, branch, or replay. |
 | Store artifacts | Writes JSON payloads to the artifact root and metadata to Postgres. |
 | Build catalogs/context | Reconstructs inventory and observed capabilities from records. |
-| Run replay/experiments | Current implementation executes synchronously in route handlers/runners. |
+| Run replay/experiments | Routes can execute synchronously or enqueue durable local worker jobs with `wait=false`. |
 | Return OpenAPI | `/openapi.json` describes the HTTP surface. |
 
 ## Store Layout

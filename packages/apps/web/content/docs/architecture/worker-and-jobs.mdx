@@ -1,39 +1,46 @@
 ---
 title: Worker And Jobs
-description: Current background job surface, SSE route, and worker handler status.
+description: Durable local job execution, Graphile Worker tasks, and job event SSE.
 ---
 
-The repository includes a worker package and job route, but replay and experiments currently execute synchronously in the API server.
+`isplay start` runs two local processes in one command: the Hono API and a Graphile Worker runner. Routes can still run synchronously, but `wait=false` now creates a durable job record and enqueues worker execution.
 
-## Worker Package
-
-`@isplay/worker` registers Graphile Worker-style task handlers for:
+## Task Names
 
 ```text
-replay.exact
+replay.run
 experiment.run
-diff.compute
-metrics.compute
-export.create
 ```
 
-The current handlers log payloads. They are placeholders for future asynchronous processing.
+The worker executes replay and experiment jobs against the same Postgres database and artifact directory as the API.
 
-## Job Events Route
+## Job Lifecycle
+
+<Steps>
+  <Step>The API creates a durable `job` projection and appends `job.queued`.</Step>
+  <Step>The API enqueues the Graphile Worker job and appends `job.enqueued` with the Graphile job id.</Step>
+  <Step>The worker appends `job.started`, runs replay or experiment execution, then appends `job.finished` or `job.failed`.</Step>
+</Steps>
+
+## SSE
 
 ```text
 GET /v1/jobs/{id}/events
 ```
 
-The route returns a simple Server-Sent Events body with `job.started` and `job.finished` for the provided ID. It is not a persisted job-status feed.
+The SSE response is generated from stored job events, so it can be read after the job has completed.
+
+```bash
+npx isplay jobs events <jobId>
+```
 
 ## Operational Meaning
 
 | Question | Current answer |
 | --- | --- |
-| Does `experiments run --no-wait` queue background work? | No. The server currently runs synchronously. |
-| Are replay jobs persisted for worker execution? | Not in the current implementation. |
-| Can I subscribe to real replay progress? | Not yet. |
-| Should production deployments depend on worker behavior? | No; treat it as a future extension point. |
+| Does replay `wait=false` queue background work? | Yes. It returns a queued replay with `metadata.jobId`. |
+| Does experiment `wait=false` queue background work? | Yes. It returns `{ jobId, experimentId, status: "queued" }`. |
+| Can I subscribe to replay progress? | You can read durable job lifecycle events. Per-step replay streaming is not implemented. |
+| Are jobs recoverable across API restarts? | Yes, through Graphile Worker and durable job projections, assuming the same Postgres database is used. |
 
-See [Limits](/docs/reference/limits) for the consolidated current-behavior reference.
+See [Limits](/docs/reference/limits) for the consolidated behavior reference.

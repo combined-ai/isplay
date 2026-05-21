@@ -1,9 +1,12 @@
 import type { JsonValue } from "@isplay/core";
-import type { IsplaySdk } from "@isplay/sdk";
+import type { IsplaySdk, IsplaySdkOptions } from "@isplay/sdk";
 import type { RuntimeFixtureGateway } from "@isplay/adapter-runtime";
 
 export type CodexAdapterOptions = {
   client?: IsplaySdk;
+  projectId?: string;
+  apiUrl?: string;
+  sdk?: Omit<IsplaySdkOptions, "projectId" | "baseUrl">;
   fixtureGateway?: RuntimeFixtureGateway;
   runKey?: (event: CodexEvent | CodexHookInput) => string;
   postToolReplacement?: boolean;

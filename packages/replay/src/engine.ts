@@ -54,17 +54,18 @@ export class ReplayEngine {
 
     const branchEvents = input.branchEvents ?? input.baseEvents;
     if (branchEvents.length > policy.maxSteps) return this.error(input.replay, `Replay exceeded maxSteps policy: ${policy.maxSteps}`);
-    const toolRequest = input.divergentToolRequest ?? findDivergentToolRequest(input.baseEvents, branchEvents);
+    const toolRequest = input.divergentToolRequest ? { ...input.divergentToolRequest, eventIndex: undefined } : findDivergentToolRequest(input.baseEvents, branchEvents);
     if (toolRequest) {
+      if (policy.tool === "blocked") return this.error(input.replay, `Tool policy blocked divergent tool call: ${toolRequest.toolName}`);
       const request = {
         ...toolRequest,
         projectId: input.replay.projectId,
         replayId: input.replay.id,
         branchId: input.replay.branchId
       };
-      const resolution = new ToolFixtureGateway(input.fixtures ?? []).resolve(request);
+      const resolution = new ToolFixtureGateway(fixturesAllowedByPolicy(input.fixtures ?? [], policy)).resolve(request);
       if (resolution.status === "required") {
-        if (policy.tool === "recorded-only" || policy.tool === "blocked") {
+        if (policy.tool === "recorded-only") {
           return this.error(input.replay, `Missing recorded fixture for divergent tool call: ${toolRequest.toolName}`);
         }
         return {
@@ -77,7 +78,7 @@ export class ReplayEngine {
           requirement: resolution.requirement
         };
       }
-      return this.finish({ ...input, branchEvents: appendFixtureEvent(branchEvents, input.replay, resolution.fixture) }, "aligned");
+      return this.finish({ ...input, branchEvents: substituteFixtureEvent(branchEvents, input.replay, resolution.fixture, toolRequest.eventIndex) }, "aligned");
     }
 
     return this.finish({ ...input, branchEvents }, policy.model === "recorded-only" && policy.tool === "recorded-only" ? "exact" : "aligned");
@@ -102,7 +103,7 @@ export class ReplayEngine {
             ? branchEvents[firstDivergence.firstDivergenceIndex]?.id
             : undefined,
         comparability: firstDivergence?.firstDivergenceIndex === -1 ? comparability : "diverged_but_comparable",
-        metadata: { ...input.replay.metadata, replayRunId: createId("job") }
+        metadata: { ...input.replay.metadata, replayMode: "recorded_transform" }
       }),
       events: branchEvents,
       diffs,
@@ -121,12 +122,14 @@ function unsupportedLivePolicy(policy: ReplayPolicy): string | undefined {
   return undefined;
 }
 
-function findDivergentToolRequest(baseEvents: EventRecord[], branchEvents: EventRecord[]): Omit<ToolRequest, "projectId" | "replayId" | "branchId"> | undefined {
+type DivergentToolRequest = Omit<ToolRequest, "projectId" | "replayId" | "branchId"> & { eventIndex?: number };
+
+function findDivergentToolRequest(baseEvents: EventRecord[], branchEvents: EventRecord[]): DivergentToolRequest | undefined {
   const length = Math.max(baseEvents.length, branchEvents.length);
   for (let index = 0; index < length; index += 1) {
     const branch = branchEvents[index];
     if (!branch || !String(branch.type).startsWith("tool.")) continue;
-    if (stableHash(baseEvents[index]?.data) !== stableHash(branch.data)) return eventToToolRequest(branch);
+    if (stableHash(baseEvents[index]?.data) !== stableHash(branch.data)) return { ...eventToToolRequest(branch), eventIndex: index };
   }
   return undefined;
 }
@@ -142,14 +145,47 @@ function eventToToolRequest(event: EventRecord): Omit<ToolRequest, "projectId" |
   };
 }
 
-function appendFixtureEvent(events: EventRecord[], replay: Replay, fixture: ToolFixture): EventRecord[] {
+function fixturesAllowedByPolicy(fixtures: ToolFixture[], policy: ReplayPolicy): ToolFixture[] {
+  const allowed = allowedFixtureProvenances(policy.tool);
+  return fixtures.filter((fixture) => allowed.has(fixture.provenance));
+}
+
+function allowedFixtureProvenances(toolPolicy: ReplayPolicy["tool"]): Set<ToolFixture["provenance"]> {
+  if (toolPolicy === "recorded-only") return new Set(["recorded"]);
+  if (toolPolicy === "analyst-fixture") return new Set(["analyst_fixture"]);
+  if (toolPolicy === "simulated") return new Set(["simulator"]);
+  if (toolPolicy === "pause-for-fixture") return new Set(["recorded", "analyst_fixture"]);
+  return new Set();
+}
+
+function substituteFixtureEvent(events: EventRecord[], replay: Replay, fixture: ToolFixture, eventIndex: number | undefined): EventRecord[] {
+  const targetIndex = targetToolResultIndex(events, eventIndex);
+  const substituted = events.map((event, index) => {
+    if (index !== targetIndex) return event;
+    const data = event.data && typeof event.data === "object" && !Array.isArray(event.data) ? event.data : {};
+    const rest = { ...data };
+    delete rest.result;
+    delete rest.output;
+    return EventSchema.parse({
+      ...event,
+      data: toJsonValue({
+        ...rest,
+        status: "ok",
+        resultArtifactId: fixture.outputArtifactId,
+        resultHash: fixture.outputHash,
+        fixtureId: fixture.id,
+        fixtureProvenance: fixture.provenance
+      }),
+      metadata: { ...event.metadata, replayId: replay.id, fixtureId: fixture.id, fixtureProvenance: fixture.provenance, fixtureSubstitution: true }
+    });
+  });
   return [
-    ...events,
+    ...substituted,
     EventSchema.parse({
       id: createId("event"),
       createdAt: nowIso(),
       projectId: replay.projectId,
-      runId: replay.runId,
+      runId: replay.baseRunId,
       seq: events.length,
       type: "fixture.created",
       refId: fixture.id,
@@ -157,5 +193,16 @@ function appendFixtureEvent(events: EventRecord[], replay: Replay, fixture: Tool
       data: toJsonValue(fixture),
       metadata: { replayId: replay.id, provenance: fixture.provenance }
     })
-  ];
+  ].map((event, seq) => EventSchema.parse({ ...event, seq }));
+}
+
+function targetToolResultIndex(events: EventRecord[], eventIndex: number | undefined): number {
+  if (eventIndex === undefined) return events.length - 1;
+  const source = events[eventIndex];
+  const refId = source?.refId;
+  if (refId) {
+    const resultIndex = events.findIndex((event, index) => index >= eventIndex && event.refId === refId && event.type === "tool.finished");
+    if (resultIndex >= 0) return resultIndex;
+  }
+  return eventIndex;
 }

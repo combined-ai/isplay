@@ -19,7 +19,7 @@ Capture is the act of turning an agent execution into structured evidence. The g
 
 ## Capture Is Not Replay
 
-Capture is observational. It records a baseline. Replay is counterfactual. It applies branch interventions and policies to ask "what would have changed if this input/state/tool result/config had been different?"
+Capture is observational. It records a baseline. Replay is counterfactual within its execution mode: the local engine transforms recorded evidence and applies fixtures/policies; executor-backed runtimes are required to recompute model or tool behavior.
 
 That distinction matters:
 
@@ -33,7 +33,7 @@ That distinction matters:
 Captured payloads pass through `toJsonValue()` and capture policy redaction before becoming artifacts or metadata. Default redaction masks emails, phone numbers, API-key-like tokens, JWTs, credit-card-like numbers, and secret-looking object keys. Capture policy can also mask or drop fields by path.
 
 <Callout type="warn" title="Current redaction semantics">
-`hash`, `encrypt`, `artifact_only`, and `metadata_only` are policy actions, but current replacement output is intentionally conservative. `hash` emits `[HASHED]`; `encrypt`, `artifact_only`, and `metadata_only` mask as `[REDACTED]` rather than wiring encryption or alternate storage semantics.
+Capture policy supports `capture`, `drop`, `hash`, and `mask`. `hash` emits `[HASHED]`; encryption and artifact-only semantics must be modeled with explicit storage and metadata outside capture policy.
 </Callout>
 
 ## Capture Quality Checklist

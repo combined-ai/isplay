@@ -1,4 +1,5 @@
 import type { Command } from "commander";
+import { CreateExperimentSchema, CreateHypothesisBatchSchema, RankEffectsInputSchema } from "@isplay/core";
 import { createApiClient, requiredProjectId } from "../lib/api.js";
 import { looksLikeJsonInput, readJsonInput } from "../lib/files.js";
 import { printJson } from "../lib/output.js";
@@ -22,7 +23,7 @@ function registerDiscover(program: Command): void {
 function registerExperiments(program: Command): void {
   const experiments = program.command("experiments").alias("experiment").description("Create, run, and inspect experiments");
   experiments.command("create").argument("<jsonOrFile>").action(async (input: string) => {
-    printJson(await createApiClient().createExperiment((await readJsonInput(input)) as never));
+    printJson(await createApiClient().createExperiment(CreateExperimentSchema.parse(await readJsonInput(input))));
   });
   experiments.command("get").argument("<experimentId>").action(async (id: string) => {
     printJson(await createApiClient().getExperiment(id));
@@ -61,7 +62,7 @@ function registerEffects(program: Command): void {
     printJson(await createApiClient().getReplayEffects(id));
   });
   effects.command("rank").argument("<jsonOrFile>").action(async (input: string) => {
-    printJson(await createApiClient().rankEffects((await readJsonInput(input)) as never));
+    printJson(await createApiClient().rankEffects(RankEffectsInputSchema.parse(await readJsonInput(input))));
   });
   effects
     .command("explain")
@@ -98,7 +99,7 @@ async function discoverRunAction(runId: string): Promise<void> {
 async function runExperimentAction(input: string, options: { wait: boolean }): Promise<void> {
   const client = createApiClient();
   if (looksLikeJsonInput(input)) {
-    printJson(await client.createHypothesisBatch((await readJsonInput(input)) as never));
+    printJson(await client.createHypothesisBatch(CreateHypothesisBatchSchema.parse(await readJsonInput(input))));
     return;
   }
   printJson(await client.runExperiment(input, { wait: options.wait }));

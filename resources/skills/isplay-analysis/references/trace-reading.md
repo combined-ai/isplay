@@ -37,7 +37,7 @@ For replays, first divergence is the earliest step where base and branch signatu
 - At intervention: expected.
 - After intervention but before tool result: model/tool selection changed.
 - At fixture injection: conclusion depends on fixture validity.
-- After fixture: downstream behavior changed under assumed output.
+- After fixture: later recorded/derived trace events differ under the transformed replay. Do not claim downstream runtime behavior was recomputed unless an explicit executor produced it.
 
 Always inspect changed descendants, not only first divergence.
 

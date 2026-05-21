@@ -43,7 +43,7 @@ Integrations map framework-specific model, tool, state, and hook surfaces onto t
 
 ## Shared Advice
 
-- Initialize `@isplay/sdk` before adapters call `getClient()`.
+- Pass `client` or `projectId` into adapters explicitly.
 - Put capture inside a run context unless the adapter uses `RuntimeRunRegistry`.
 - Capture tool schemas and side-effect classes, not just tool outputs.
 - Drain streams so capture can finish model calls.

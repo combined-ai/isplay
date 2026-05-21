@@ -1,8 +1,7 @@
-import { getClient } from "@isplay/sdk";
+import type { IsplaySdk } from "@isplay/sdk";
 import { extractToolCalls } from "../inference/tool-calls.js";
 
-export async function recordToolProposals(modelCallId: string, result: unknown): Promise<void> {
-  const client = getClient();
+export async function recordToolProposals(client: IsplaySdk, modelCallId: string, result: unknown): Promise<void> {
   for (const call of extractToolCalls(result)) {
     await client.recordToolProposal({
       modelCallId,

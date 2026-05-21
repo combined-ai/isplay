@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { JsonValueSchema, MetadataSchema } from "../common/json.js";
 import { SideEffectClassSchema } from "../runtime/model-tool.js";
-import { FixtureProvenanceSchema, InterventionKindSchema, ReplayPolicySchema } from "../runtime/replay.js";
+import { FixtureProvenanceSchema, InterventionKindSchema, InterventionTargetSchema, PatchOperationSchema, ReplayPolicySchema } from "../runtime/replay.js";
 
 export const CreateProjectSchema = z.object({
   name: z.string(),
@@ -52,18 +52,23 @@ export const CreateInterventionSchema = z.object({
   projectId: z.string(),
   branchId: z.string(),
   kind: InterventionKindSchema,
-  targetId: z.string().optional(),
+  target: InterventionTargetSchema.default({}),
+  operations: z.array(PatchOperationSchema).default([]),
   description: z.string().optional(),
   patch: JsonValueSchema.optional(),
+  expectedBaseHash: z.string().optional(),
   metadata: MetadataSchema.optional()
 });
 
 export const CreateReplaySchema = z.object({
   projectId: z.string(),
-  runId: z.string(),
+  baseRunId: z.string(),
   branchId: z.string().optional(),
-  trialId: z.string().optional(),
+  experimentId: z.string().optional(),
+  armId: z.string().optional(),
+  trialIndex: z.number().int().nonnegative().optional(),
   policy: ReplayPolicySchema.optional(),
+  wait: z.boolean().optional(),
   metadata: MetadataSchema.optional()
 });
 

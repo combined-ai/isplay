@@ -16,6 +16,7 @@ export class ModelToolCaptureClient extends RunCaptureClient {
     const modelCall: ModelCall = {
       id: createId("model"),
       createdAt: nowIso(),
+      recordVersion: 1,
       projectId: context.projectId,
       runId: context.runId,
       provider: input.provider,
@@ -33,6 +34,7 @@ export class ModelToolCaptureClient extends RunCaptureClient {
   }
 
   async finishModelCall(modelCall: ModelCall, input: { output?: unknown; usage?: unknown; error?: unknown; logprobs?: unknown } = {}): Promise<ModelCall> {
+    if (!runStorage.getStore()) return this.withRunContext({ runId: modelCall.runId, projectId: modelCall.projectId }, () => this.finishModelCall(modelCall, input));
     const response = input.output === undefined ? undefined : await this.uploadArtifact("model.response", input.output);
     const updated: ModelCall = {
       ...modelCall,
@@ -54,6 +56,7 @@ export class ModelToolCaptureClient extends RunCaptureClient {
     const proposal: ToolProposal = {
       id: createId("proposal"),
       createdAt: nowIso(),
+      recordVersion: 1,
       projectId: context.projectId,
       runId: context.runId,
       modelCallId: input.modelCallId,
@@ -74,6 +77,7 @@ export class ModelToolCaptureClient extends RunCaptureClient {
     const execution: ToolExecution = {
       id: createId("tool"),
       createdAt: nowIso(),
+      recordVersion: 1,
       projectId: context.projectId,
       runId: context.runId,
       proposalId: input.proposalId,
@@ -92,6 +96,7 @@ export class ModelToolCaptureClient extends RunCaptureClient {
   }
 
   async finishToolExecution(execution: ToolExecution, input: { output?: unknown; error?: unknown } = {}): Promise<ToolExecution> {
+    if (!runStorage.getStore()) return this.withRunContext({ runId: execution.runId, projectId: execution.projectId }, () => this.finishToolExecution(execution, input));
     const output = input.output === undefined ? undefined : await this.uploadArtifact("tool.output", input.output);
     const updated = { ...execution, status: input.error ? "error" : "ok", resultArtifactId: output?.id, resultHash: input.output === undefined ? undefined : stableHash(this.capture(input.output).value), endedAt: nowIso(), error: input.error === undefined ? undefined : String(input.error instanceof Error ? input.error.message : input.error) } as ToolExecution;
     await this.api.recordToolExecution(execution.runId, updated);

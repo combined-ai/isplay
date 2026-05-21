@@ -1,5 +1,5 @@
 import type { Command } from "commander";
-import type { JsonValue } from "@isplay/core";
+import { CreateToolFixtureSchema, type JsonValue } from "@isplay/core";
 import { createApiClient, requiredProjectId } from "../lib/api.js";
 import { readJsonInput } from "../lib/files.js";
 import { printJson } from "../lib/output.js";
@@ -20,30 +20,38 @@ export function registerFixtureCommands(program: Command): void {
     .description("Submit an analyst fixture")
     .argument("<replayId>")
     .option("--project <projectId>", "Project id")
+    .option("--branch <branchId>", "Branch-scoped fixture")
     .requiredOption("--tool <name>", "Tool name")
-    .requiredOption("--file <jsonFile>", "Fixture output JSON file")
+    .option("--file <jsonFile>", "Fixture output JSON file")
+    .option("--output <jsonOrFile>", "Fixture output JSON or file")
+    .option("--matcher <jsonOrFile>", "Fixture matcher JSON or file")
     .option("--args-hash <hash>", "Recorded args hash")
+    .option("--provenance <provenance>", "Fixture provenance", "analyst_fixture")
     .action(addFixtureAction);
 }
 
 async function addFixtureAction(
   replayId: string,
-  options: { project?: string; tool: string; file: string; argsHash?: string }
+  options: { project?: string; branch?: string; tool: string; file?: string; output?: string; matcher?: string; argsHash?: string; provenance: string }
 ): Promise<void> {
   const client = createApiClient();
   const projectId = requiredProjectId(options.project);
   const argsHash = options.argsHash ?? (await findOpenRequirement(client, replayId, options.tool));
-  const output = (await readJsonInput(options.file)) as JsonValue;
+  const outputInput = options.output ?? options.file;
+  if (!outputInput) throw new Error("--output or --file is required");
+  const output = (await readJsonInput(outputInput)) as JsonValue;
+  const matcher = options.matcher ? ((await readJsonInput(options.matcher)) as JsonValue) : { argsHash };
   printJson(
-    await client.addToolFixture(replayId, {
+    await client.addToolFixture(replayId, CreateToolFixtureSchema.parse({
       projectId,
       replayId,
+      branchId: options.branch,
       toolName: options.tool,
-      matcher: { argsHash },
+      matcher,
       output,
-      provenance: "analyst_fixture",
+      provenance: options.provenance,
       author: process.env.USER
-    })
+    }))
   );
 }
 

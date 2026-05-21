@@ -1,13 +1,14 @@
 import { rankEffects, summarizeExperimentStatistics } from "@isplay/analysis";
-import { createId, type EffectCandidate, type ExperimentStatistics, type FixtureRequirement, type Replay } from "@isplay/core";
+import { createId, nowIso, type EffectCandidate, type ExperimentStatistics, type FixtureRequirement, type Replay } from "@isplay/core";
 import type { IsplayStore } from "@isplay/postgres";
 import { executeReplay } from "./replay.js";
 
 export type ExperimentResults = Awaited<ReturnType<typeof getExperimentResults>>;
+export type PageOptions = { limit?: number; offset?: number };
 
 export async function runExperiment(store: IsplayStore, experimentId: string) {
   const experiment = await requireExperiment(store, experimentId);
-  await store.updateExperiment({ ...experiment, status: "running" });
+  await store.updateExperiment({ ...experiment, status: "running", startedAt: experiment.startedAt ?? nowIso(), endedAt: undefined });
   const arms = await store.listExperimentArms(experimentId);
   for (const arm of arms) {
     let currentArm = arm;
@@ -23,9 +24,11 @@ export async function runExperiment(store: IsplayStore, experimentId: string) {
     for (let index = currentArm.replayIds.length; index < experiment.trialPlan.repetitions; index += 1) {
       const replay = await store.createReplay({
         projectId: currentArm.projectId,
-        runId: currentArm.baseRunId,
+        baseRunId: currentArm.baseRunId,
         branchId: currentArm.branchId,
-        trialId: createId("trial"),
+        experimentId,
+        armId: currentArm.id,
+        trialIndex: index,
         policy: experiment.policy,
         metadata: { experimentId, armId: currentArm.id, repetition: index }
       });
@@ -36,17 +39,19 @@ export async function runExperiment(store: IsplayStore, experimentId: string) {
   }
   const requirements = await store.listExperimentRequirements(experimentId);
   const status = requirements.some((item) => item.status === "open") ? "paused" : "completed";
-  return store.updateExperiment({ ...(await requireExperiment(store, experimentId)), status });
+  return store.updateExperiment({ ...(await requireExperiment(store, experimentId)), status, endedAt: nowIso() });
 }
 
-export async function getExperimentResults(store: IsplayStore, experimentId: string) {
+export async function getExperimentResults(store: IsplayStore, experimentId: string, page?: PageOptions) {
   const experiment = await requireExperiment(store, experimentId);
   const arms = await store.listExperimentArms(experimentId);
   const replays = await store.listExperimentReplays(experimentId);
   const requirements = await store.listExperimentRequirements(experimentId);
   const effects = await getExperimentEffects(store, experimentId);
   const statistics = await getExperimentStatistics(store, experimentId);
-  return { experiment, arms, replays, requirements, effects, statistics };
+  return page
+    ? { experiment, arms: paginate(arms, page), replays: paginate(replays, page), requirements: paginate(requirements, page), effects: paginate(effects, page), statistics }
+    : { experiment, arms, replays, requirements, effects, statistics };
 }
 
 export async function getExperimentEffects(store: IsplayStore, experimentId: string): Promise<EffectCandidate[]> {
@@ -59,7 +64,7 @@ export async function getExperimentEffects(store: IsplayStore, experimentId: str
         store.listReplayAttempts(replay.id),
         store.listFixtureUses(replay.id)
       ]);
-      return rankEffects({ projectId: replay.projectId, experimentId, replayId: replay.id, baseRunId: replay.runId, branchId: replay.branchId, diffs, metrics, attempts, fixtureUses });
+      return rankEffects({ projectId: replay.projectId, experimentId, replayId: replay.id, baseRunId: replay.baseRunId, branchId: replay.branchId, diffs, metrics, attempts, fixtureUses });
     })
   );
   return aggregateEffects(ranked.flat());
@@ -74,7 +79,7 @@ export async function getReplayEffects(store: IsplayStore, replayId: string): Pr
     store.listReplayAttempts(replayId),
     store.listFixtureUses(replayId)
   ]);
-  return rankEffects({ projectId: replay.projectId, replayId, baseRunId: replay.runId, branchId: replay.branchId, diffs, metrics, attempts, fixtureUses });
+  return rankEffects({ projectId: replay.projectId, replayId, baseRunId: replay.baseRunId, branchId: replay.branchId, diffs, metrics, attempts, fixtureUses });
 }
 
 export async function getExperimentStatistics(store: IsplayStore, experimentId: string): Promise<ExperimentStatistics> {
@@ -86,8 +91,8 @@ export async function getExperimentStatistics(store: IsplayStore, experimentId: 
   return summarizeExperimentStatistics({ projectId: experiment.projectId, experimentId, replays, metrics, attempts, fixtureUses });
 }
 
-export async function getExperimentTrialMatrix(store: IsplayStore, experimentId: string) {
-  const arms = await store.listExperimentArms(experimentId);
+export async function getExperimentTrialMatrix(store: IsplayStore, experimentId: string, page?: PageOptions) {
+  const arms = paginate(await store.listExperimentArms(experimentId), page);
   return Promise.all(
     arms.map(async (arm) => ({
       arm,
@@ -149,4 +154,11 @@ function uniqueRefs(refs: EffectCandidate["evidenceRefs"]): EffectCandidate["evi
     seen.add(key);
     return true;
   });
+}
+
+function paginate<T>(items: T[], page?: PageOptions): T[] {
+  if (!page) return items;
+  const limit = Math.min(Math.max(Math.trunc(page.limit ?? 100), 1), 500);
+  const offset = Math.max(Math.trunc(page.offset ?? 0), 0);
+  return items.slice(offset, offset + limit);
 }

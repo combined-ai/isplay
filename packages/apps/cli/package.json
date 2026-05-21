@@ -1,6 +1,6 @@
 {
-  "name": "@isplay/cli",
-  "version": "0.2.0",
+  "name": "isplay",
+  "version": "0.3.0",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -8,11 +8,37 @@
     "isplay": "./dist/index.js"
   },
   "exports": {
-    ".": "./dist/index.js"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   },
   "dependencies": {
-    "@isplay/api-client": "0.2.0",
-    "@isplay/server": "0.2.0",
+    "@isplay/api-client": "0.3.0",
+    "@isplay/server": "0.3.0",
+    "@isplay/worker": "0.3.0",
     "commander": "^14.0.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/isplay/isplay.git"
+  },
+  "bugs": {
+    "url": "https://github.com/isplay/isplay/issues"
+  },
+  "homepage": "https://isplay.dev",
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "description": "Command-line interface for local isplay capture, replay, jobs, and analysis.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.5.0"
   }
 }

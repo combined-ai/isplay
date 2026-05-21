@@ -11,7 +11,7 @@ export const CreateHypothesisBatchSchema = z.object({
   hypotheses: z.array(
     z.object({
       statement: z.string(),
-      interventions: z.array(InterventionSpecSchema).min(1),
+      interventions: z.array(InterventionSpecSchema).default([]),
       expectedEffect: z
         .object({ metric: z.string(), direction: z.enum(["increase", "decrease", "flip", "no_change"]), minimumEffect: z.number().optional() })
         .optional()

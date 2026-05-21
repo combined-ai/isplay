@@ -32,7 +32,7 @@ An experiment plan includes:
 
 ## Current Execution Model
 
-The current server runner is synchronous and serial. It parses trial plan fields such as `concurrency`, `maxReplays`, and `stopRule`, but those are not fully enforced as asynchronous scheduling controls.
+The runner can execute inline for `wait=true` or through a durable Graphile Worker job for `wait=false`. Within one experiment, replay execution is still serial: `concurrency`, `maxReplays`, and `stopRule` are parsed as planning fields but are not yet full scheduling controls.
 
 ## Validity Gates
 

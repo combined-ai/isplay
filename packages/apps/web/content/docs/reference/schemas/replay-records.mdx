@@ -1,6 +1,6 @@
 ---
 title: Replay Records
-description: Replay policies, branches, interventions, trials, replays, fixtures, diffs, metrics, attempts, and failures.
+description: Replay policies, branches, interventions, replays, attempts, fixtures, diffs, metrics, and failures.
 ---
 
 ## Replay Policy Enums
@@ -41,9 +41,8 @@ continue_until_budget
 | Schema | Important fields |
 | --- | --- |
 | `Branch` | `projectId`, `baseRunId`, `checkpointId`, `parentBranchId`, `name`, `replayPolicy`, `metadata` |
-| `Intervention` | `projectId`, `branchId`, `kind`, `targetId`, `description`, `patch`, `metadata` |
-| `Trial` | `projectId`, `branchId`, `trialIndex`, `seed`, `replayPolicy`, `status`, `metadata` |
-| `Replay` | `projectId`, `runId`, `branchId`, `trialId`, `status`, `policy`, `firstDivergenceEventId`, `comparability`, `pausedRequirementId`, `error`, `metadata` |
+| `Intervention` | `projectId`, `branchId`, `kind`, `target`, `operations`, `description`, `patch`, `expectedBaseHash`, `metadata` |
+| `Replay` | `projectId`, `baseRunId`, `branchId`, `experimentId`, `armId`, `trialIndex`, `status`, `policy`, `latestAttemptId`, `firstDivergenceEventId`, `comparability`, `pausedRequirementId`, `error`, `metadata` |
 | `ToolFixture` | `projectId`, `replayId`, `branchId`, `toolName`, `matcher`, `outputArtifactId`, `outputHash`, `schemaVersion`, `implementationVersion`, `sideEffectClass`, `provenance`, `author`, `metadata` |
 | `FixtureRequirement` | `projectId`, `replayId`, `branchId`, `toolName`, `argsArtifactId`, `argsHash`, `reason`, `status`, `satisfiedByFixtureId`, `metadata` |
 | `DiffRecord` | `projectId`, `replayId`, `kind`, `comparability`, `patch`, `summary`, `metadata` |
@@ -53,7 +52,7 @@ continue_until_budget
 
 | Schema | Purpose |
 | --- | --- |
-| `ReplayAttempt` | One execution attempt for replay or trial. |
+| `ReplayAttempt` | One append-only execution attempt for a replay. |
 | `ReplayStep` | Step-level replay decision. |
 | `FixtureUse` | Actual injected fixture use. |
 | `ReplayFailure` | Structured failure reason and recoverability. |

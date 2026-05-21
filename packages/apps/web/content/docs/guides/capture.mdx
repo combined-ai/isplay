@@ -155,10 +155,9 @@ Current redaction behavior:
 | `capture` | Store the value after default pattern redaction. |
 | `drop` | Replace with `null` and count as dropped. |
 | `mask` | Replace with `[REDACTED]`. |
-| `metadata_only` | Replace with `[REDACTED]`. |
-| `artifact_only` | Replace with `[REDACTED]`. |
-| `encrypt` | Replace with `[REDACTED]`; encryption is not currently wired. |
 | `hash` | Replace with `[HASHED]`; no digest is currently emitted. |
+
+`metadata_only`, `artifact_only`, and `encrypt` are not capture policy actions in v0.3.
 
 Default string redaction masks emails, phone-like values, API-key-like tokens, JWTs, and credit-card-like numbers. Secret-looking object keys such as `authorization`, `password`, `token`, `cookie`, and `private_key` are masked automatically.
 

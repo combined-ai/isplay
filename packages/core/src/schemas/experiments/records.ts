@@ -1,32 +1,16 @@
 import { z } from "zod";
 import { JsonValueSchema, MetadataSchema } from "../common/json.js";
 import { BaseRecordSchema } from "../runtime/records.js";
-import { InterventionKindSchema, ReplayPolicySchema } from "../runtime/replay.js";
+import { InterventionKindSchema, InterventionTargetSchema, PatchOperationSchema, ReplayPolicySchema } from "../runtime/replay.js";
 
 export const CheckpointSelectorSchema = z.object({
   kind: z.enum(["first", "latest", "name"]),
   value: z.string().optional()
 });
 
-export const PatchOperationSchema = z.object({
-  op: z.enum(["add", "remove", "replace", "move", "copy", "test", "mask_span", "replace_text"]),
-  path: z.string(),
-  value: JsonValueSchema.optional(),
-  from: z.string().optional()
-});
-export type PatchOperation = z.infer<typeof PatchOperationSchema>;
-
 export const InterventionSpecSchema = z.object({
   kind: InterventionKindSchema,
-  target: z.object({
-    refId: z.string().optional(),
-    eventId: z.string().optional(),
-    eventType: z.string().optional(),
-    toolName: z.string().optional(),
-    modelCallId: z.string().optional(),
-    artifactId: z.string().optional(),
-    jsonPointer: z.string().optional()
-  }),
+  target: InterventionTargetSchema.default({}),
   operations: z.array(PatchOperationSchema).default([]),
   patch: JsonValueSchema.optional(),
   expectedBaseHash: z.string().optional(),
@@ -38,7 +22,7 @@ export const HypothesisSchema = BaseRecordSchema.extend({
   projectId: z.string(),
   experimentId: z.string().optional(),
   statement: z.string(),
-  interventions: z.array(InterventionSpecSchema),
+  interventions: z.array(InterventionSpecSchema).default([]),
   expectedEffect: z
     .object({ metric: z.string(), direction: z.enum(["increase", "decrease", "flip", "no_change"]), minimumEffect: z.number().optional() })
     .optional(),
@@ -71,6 +55,8 @@ export const ExperimentSchema = BaseRecordSchema.extend({
   policy: ReplayPolicySchema,
   validityGates: z.array(ValidityGateSchema),
   status: z.enum(["draft", "queued", "running", "paused", "completed", "invalid"]),
+  startedAt: z.string().optional(),
+  endedAt: z.string().optional(),
   metadata: MetadataSchema
 });
 export type Experiment = z.infer<typeof ExperimentSchema>;

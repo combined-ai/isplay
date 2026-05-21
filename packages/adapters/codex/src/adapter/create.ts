@@ -1,11 +1,11 @@
-import { getClient } from "@isplay/sdk";
+import { resolveClient } from "@isplay/adapter-kit";
 import { codexCapabilities } from "../capabilities/manifest.js";
 import { CodexHookHandler } from "../hooks/handler.js";
 import { CodexJsonlIngestor } from "../jsonl/ingestor.js";
 import type { CodexAdapterOptions, CodexEvent, CodexHookInput } from "../types.js";
 
 export function createCodexAdapter(options: CodexAdapterOptions = {}) {
-  const client = options.client ?? getClient();
+  const client = resolveClient(options);
   const keyOf = (event: CodexEvent | CodexHookInput) => options.runKey?.(event) ?? String(event.thread_id ?? event.session_id ?? "codex");
   const hooks = new CodexHookHandler({
     client,

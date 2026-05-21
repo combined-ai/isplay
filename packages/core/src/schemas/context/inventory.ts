@@ -78,7 +78,8 @@ export const ContextSearchSchema = z.object({
   runId: z.string().optional(),
   kinds: z.array(ContextItemKindSchema).optional(),
   query: z.string().optional(),
-  limit: z.number().int().positive().max(200).default(50)
+  limit: z.number().int().positive().max(200).default(50),
+  offset: z.number().int().nonnegative().default(0)
 });
 export type ContextSearchInput = z.infer<typeof ContextSearchSchema>;
 

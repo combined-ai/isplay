@@ -1,7 +1,9 @@
 import { createAdapterKit } from "@isplay/adapter-kit";
-import type { AiSdkTool } from "../types.js";
+import type { SideEffectClass } from "@isplay/core";
+import type { AiSdkAdapterOptions, AiSdkTool } from "../types.js";
 
-export function instrumentTools<T extends Record<string, AiSdkTool>>(tools: T): T {
+export function instrumentTools<T extends Record<string, AiSdkTool>>(tools: T, options: AiSdkAdapterOptions): T {
+  const kit = createAdapterKit(options);
   const wrapped: Record<string, AiSdkTool> = {};
   for (const [name, tool] of Object.entries(tools)) {
     if (typeof tool.execute !== "function") {
@@ -12,10 +14,10 @@ export function instrumentTools<T extends Record<string, AiSdkTool>>(tools: T): 
     wrapped[name] = {
       ...tool,
       async execute(args: unknown, options?: unknown) {
-        const wrappedExecute = createAdapterKit().wrapTool(
+        const wrappedExecute = kit.wrapTool(
           {
             name,
-            sideEffectClass: tool.__isplaySideEffectClass ?? "unknown",
+            sideEffectClass: tool.__isplaySideEffectClass ?? classifyToolName(name),
             schemaVersion: tool.__isplaySchemaVersion,
             implementationVersion: tool.__isplayImplementationVersion
           },
@@ -26,4 +28,11 @@ export function instrumentTools<T extends Record<string, AiSdkTool>>(tools: T): 
     };
   }
   return wrapped as T;
+}
+
+function classifyToolName(name: string): SideEffectClass {
+  const lower = name.toLowerCase();
+  if (/(bash|shell|exec|terminal|command|code|python|node|script|deploy|send|delete|remove|write|edit|patch|apply)/.test(lower)) return "external_mutation";
+  if (/(search|read|fetch|get|list|query|lookup|retrieve)/.test(lower)) return "read";
+  return "unknown";
 }

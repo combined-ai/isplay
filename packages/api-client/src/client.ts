@@ -22,7 +22,6 @@ import type {
   EffectCandidate,
   EventRecord,
   Experiment,
-  ExperimentArm,
   ExperimentStatistics,
   FixtureRequirement,
   Intervention,
@@ -31,6 +30,7 @@ import type {
   Project,
   RankEffectsInput,
   Replay,
+  ReplayAttempt,
   Run,
   RunExperimentInput,
   ToolExecution,
@@ -44,7 +44,16 @@ import { ReplayResource } from "./resources/replays.js";
 import { RunResource } from "./resources/runs.js";
 import { ApiTransport } from "./transport.js";
 import type { ApiClientOptions } from "./options.js";
-import type { AnalysisRunCreateResponse } from "./paths.js";
+import type {
+  AnalysisRunCreateResponse,
+  ArmComparisonRow,
+  CreateExperimentResponse,
+  ExperimentResultsResponse,
+  ExperimentRunResponse,
+  HypothesisBatchCreateResponse,
+  PageQuery,
+  TrialMatrixRow
+} from "./paths.js";
 
 export class IsplayApiClient {
   readonly baseUrl: string;
@@ -76,10 +85,10 @@ export class IsplayApiClient {
   getProjectCatalog(id: string): Promise<Catalog> { return this.projects.catalog(id); }
   createRun(input: CreateRunInput): Promise<Run> { return this.runs.create(input); }
   getRun(id: string): Promise<Run> { return this.runs.get(id); }
-  listRuns(projectId?: string): Promise<Run[]> { return this.runs.list(projectId); }
+  listRuns(projectId?: string, page?: PageQuery): Promise<Run[]> { return this.runs.list(projectId, page); }
   patchRun(id: string, input: Partial<Run>): Promise<Run> { return this.runs.patch(id, input); }
   appendEvents(runId: string, events: EventRecord[]): Promise<{ inserted: number }> { return this.runs.appendEvents(runId, events); }
-  getEvents(runId: string): Promise<EventRecord[]> { return this.runs.events(runId); }
+  getEvents(runId: string, page?: PageQuery): Promise<EventRecord[]> { return this.runs.events(runId, page); }
   recordModelCall(runId: string, input: ModelCall): Promise<ModelCall> { return this.runs.recordModelCall(runId, input); }
   recordToolProposal(runId: string, input: ToolProposal): Promise<ToolProposal> { return this.runs.recordToolProposal(runId, input); }
   recordToolExecution(runId: string, input: ToolExecution): Promise<ToolExecution> { return this.runs.recordToolExecution(runId, input); }
@@ -93,7 +102,8 @@ export class IsplayApiClient {
   listInterventions(branchId: string): Promise<Intervention[]> { return this.branches.interventions(branchId); }
   createReplay(input: CreateReplayInput): Promise<Replay> { return this.replays.create(input); }
   getReplay(id: string): Promise<Replay> { return this.replays.get(id); }
-  getReplayEvents(id: string): Promise<EventRecord[]> { return this.replays.events(id); }
+  getReplayEvents(id: string, page?: PageQuery): Promise<EventRecord[]> { return this.replays.events(id, page); }
+  getReplayAttempts(id: string, page?: PageQuery): Promise<ReplayAttempt[]> { return this.replays.attempts(id, page); }
   getReplayDiff(id: string): Promise<DiffRecord[]> { return this.replays.diff(id); }
   getReplayMetrics(id: string): Promise<Metric[]> { return this.replays.metrics(id); }
   getFixtureRequirements(id: string): Promise<FixtureRequirement[]> { return this.replays.fixtureRequirements(id); }
@@ -107,15 +117,15 @@ export class IsplayApiClient {
   getCheckpointContextInventory(id: string): Promise<ContextInventory> { return this.analysis.checkpointInventory(id); }
   searchContext(input: ContextSearchInput): Promise<ContextItem[]> { return this.analysis.searchContext(input); }
   getRunCatalog(runId: string): Promise<Catalog> { return this.runs.catalog(runId); }
-  createExperiment(input: CreateExperimentInput): Promise<{ experiment: Experiment; arms: ExperimentArm[] }> { return this.analysis.createExperiment(input); }
-  createHypothesisBatch(input: CreateHypothesisBatchInput): Promise<unknown> { return this.analysis.createHypothesisBatch(input); }
+  createExperiment(input: CreateExperimentInput): Promise<CreateExperimentResponse> { return this.analysis.createExperiment(input); }
+  createHypothesisBatch(input: CreateHypothesisBatchInput): Promise<HypothesisBatchCreateResponse> { return this.analysis.createHypothesisBatch(input); }
   getExperiment(id: string): Promise<Experiment> { return this.analysis.experiment(id); }
-  runExperiment(id: string, input: RunExperimentInput = { wait: true }): Promise<unknown> { return this.analysis.runExperiment(id, input); }
-  getExperimentResults(id: string): Promise<unknown> { return this.analysis.experimentResults(id); }
-  getExperimentRequirements(id: string): Promise<FixtureRequirement[]> { return this.analysis.experimentRequirements(id); }
-  getExperimentTrialMatrix(id: string): Promise<unknown[]> { return this.analysis.experimentTrialMatrix(id); }
+  runExperiment(id: string, input: RunExperimentInput = { wait: true }): Promise<ExperimentRunResponse> { return this.analysis.runExperiment(id, input); }
+  getExperimentResults(id: string, page?: PageQuery): Promise<ExperimentResultsResponse> { return this.analysis.experimentResults(id, page); }
+  getExperimentRequirements(id: string, page?: PageQuery): Promise<FixtureRequirement[]> { return this.analysis.experimentRequirements(id, page); }
+  getExperimentTrialMatrix(id: string, page?: PageQuery): Promise<TrialMatrixRow[]> { return this.analysis.experimentTrialMatrix(id, page); }
   getExperimentStatistics(id: string): Promise<ExperimentStatistics> { return this.analysis.experimentStatistics(id); }
-  getExperimentArmComparison(id: string): Promise<unknown[]> { return this.analysis.experimentArmComparison(id); }
+  getExperimentArmComparison(id: string, page?: PageQuery): Promise<ArmComparisonRow[]> { return this.analysis.experimentArmComparison(id, page); }
   getExperimentEffects(id: string): Promise<EffectCandidate[]> { return this.analysis.experimentEffects(id); }
   rankEffects(input: RankEffectsInput): Promise<EffectCandidate[]> { return this.analysis.rankEffects(input); }
 }

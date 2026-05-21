@@ -23,12 +23,12 @@ A branch records `baseRunId`, `checkpointId`, optional parent branch, name, repl
 npx isplay branch intervene <branchId> \
   --project "$ISPLAY_PROJECT_ID" \
   --kind prompt_patch \
-  --target <event-or-ref-id> \
+  --target-event <eventId> \
   --patch patch.json \
   --description "Remove the duplicate receipt escalation clause"
 ```
 
-CLI interventions target an event ID, `refId`, or event type. Experiment specs can target richer selectors such as `refId`, `eventId`, `eventType`, `toolName`, `modelCallId`, `artifactId`, or `jsonPointer`.
+CLI interventions support structured selectors: `--target-ref`, `--target-event`, `--target-type`, `--target-tool`, `--target-model-call`, `--target-artifact`, `--target-context`, `--target-context-path`, and `--json-pointer`. `--target` remains a shortcut for `--target-ref`.
 
 ## Patch Shapes
 

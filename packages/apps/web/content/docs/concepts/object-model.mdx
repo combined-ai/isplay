@@ -19,7 +19,7 @@ The object model is the contract between capture code, the server, replay, exper
     intervention: { type: "controlled change", description: "A patch, mask, substitution, config change, policy override, error injection, or checkpoint resume target." },
     replay: { type: "comparison run", description: "Applies a branch and policy to a base run, then produces events, requirements, diffs, metrics, comparability, and effects." },
     fixture: { type: "tool output evidence", description: "Recorded, analyst, AI, simulator, live-readonly, or live-explicit output used to satisfy a divergent tool requirement." },
-    experiment: { type: "batch test", description: "Hypotheses, arms, trial plans, validity gates, replays, requirements, statistics, and ranked effects." },
+    experiment: { type: "batch test", description: "Hypotheses, arms, replay trial indexes, validity gates, requirements, statistics, and ranked effects." },
     analysisRun: { type: "report artifact", description: "Persisted summary with evidence nodes, evidence edges, validity labels, and validity metrics." }
   }}
 />
@@ -30,8 +30,8 @@ The object model is the contract between capture code, the server, replay, exper
   <Step>A project owns all evidence for one app, service, customer boundary, or investigation boundary.</Step>
   <Step>A run owns the observed execution trace: events, model calls, tool proposals, tool executions, checkpoints, artifacts, and context inventory.</Step>
   <Step>A branch belongs to a base run and one checkpoint. It does not copy all records; it describes the controlled change to apply during replay.</Step>
-  <Step>A replay belongs to a base run and optionally a branch or trial. It records whether the comparison completed, paused, or failed.</Step>
-  <Step>An experiment owns hypotheses and arms. Arms usually materialize branches, and trials produce replays.</Step>
+  <Step>A replay belongs to a base run and optionally to an experiment arm with a `trialIndex`. It records whether the comparison completed, paused, or failed.</Step>
+  <Step>An experiment owns hypotheses and arms. Arms usually materialize branches, and repeated trial indexes materialize as replays.</Step>
   <Step>An analysis run references the base run and optional replay or experiment evidence, then stores the final evidence-bounded report data.</Step>
 </Steps>
 

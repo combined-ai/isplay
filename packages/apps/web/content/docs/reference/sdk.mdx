@@ -51,7 +51,8 @@ const client = init({
 | --- | --- | --- |
 | `withRun(input, fn)` | callback result | Creates run, installs context, patches run status. |
 | `withRunContext({ runId, projectId? }, fn)` | callback result | Uses an existing run. Managed adapters use this. |
-| `recordEvent(type, data, refId?)` | event or `undefined` | No-ops outside run context. |
+| `recordEvent(type, data, refId?)` | event | Throws outside run context. |
+| `tryRecordEvent(type, data, refId?)` | event or `undefined` | Intentional no-op variant for optional capture. |
 | `uploadArtifact(kind, payload, metadata?)` | artifact | Can run inside or outside run context. |
 | `annotateContext(input)` | event | Throws outside run context. |
 | `checkpoint(name, state, options?)` | checkpoint | Throws outside run context. |
@@ -148,7 +149,7 @@ await client.withRun({ name: "support-agent" }, async () => {
 
 Adapters call the same SDK methods. The most important shared rules:
 
-- Initialize `init()` before adapter code calls `getClient()`, or set `ISPLAY_PROJECT_ID`.
+- Pass `client` or `projectId` into adapters explicitly. Use `getClient()` only when you intentionally want SDK environment convenience.
 - Run capture code inside `withRun()` unless the adapter owns a `RuntimeRunRegistry`.
 - Drain streams so stream-based adapters can finish model calls.
 - Override side-effect class for important tools; runtime name heuristics are a fallback.

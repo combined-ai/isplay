@@ -11,7 +11,7 @@ import { isCommanderExit, printCliError } from "./lib/errors.js";
 
 export function createProgram(): Command {
   const program = new Command();
-  program.name("isplay").description("Replay and analysis infrastructure for AI agents").version("0.2.0").option("--json", "Emit JSON errors/diagnostics");
+  program.name("isplay").description("Replay and analysis infrastructure for AI agents").version("0.3.0").option("--json", "Emit JSON errors/diagnostics");
 
   registerServerCommands(program);
   registerProjectCommands(program);

@@ -15,9 +15,8 @@ export function textOf(value: unknown): string | undefined {
 
 export function sideEffectFromToolName(toolName: string): SideEffectClass {
   const lower = toolName.toLowerCase();
-  if (lower.includes("read") || lower.includes("search") || lower.includes("fetch") || lower.includes("grep")) return "read";
-  if (lower.includes("write") || lower.includes("edit") || lower.includes("patch") || lower.includes("bash")) return "write";
-  if (lower.includes("send") || lower.includes("deploy") || lower.includes("delete")) return "external_mutation";
+  if (/(bash|shell|exec|terminal|command|code|python|node|script|deploy|send|delete|remove|write|edit|patch|apply)/.test(lower)) return "external_mutation";
+  if (/(read|search|fetch|grep|get|list|query|lookup|retrieve)/.test(lower)) return "read";
   return "unknown";
 }
 

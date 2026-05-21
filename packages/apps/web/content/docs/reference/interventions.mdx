@@ -35,14 +35,38 @@ checkpoint_resume
 | `projectId` | string |
 | `branchId` | string |
 | `kind` | intervention kind |
-| `targetId` | optional string |
+| `target` | structured selector |
+| `operations` | JSON Patch-style operations |
 | `description` | optional string |
 | `patch` | optional JSON |
+| `expectedBaseHash` | optional stale-target guard |
 | `metadata` | object |
 
-## Experiment Intervention Spec
+## Target Selectors
 
-Experiment inputs can target by `refId`, `eventId`, `eventType`, `toolName`, `modelCallId`, `artifactId`, or `jsonPointer`, depending on the intervention.
+Interventions use the same structured target shape in branch records and experiment specs.
+
+```json
+{
+  "target": {
+    "refId": "tool_abc",
+    "eventId": "event_abc",
+    "eventType": "tool.started",
+    "toolName": "policy_search",
+    "modelCallId": "model_abc",
+    "artifactId": "artifact_abc",
+    "contextItemId": "context_abc",
+    "contextPath": "prompt.system",
+    "jsonPointer": "/args/query"
+  }
+}
+```
+
+All supplied selector fields must match. `jsonPointer` scopes patch operations to a subdocument.
+
+Branch replay is checkpoint-bounded. A target at or before the branch checkpoint is reported and not patched.
+
+## Patch Operations
 
 Patch operations support JSON Patch-style operations plus:
 

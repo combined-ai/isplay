@@ -1,8 +1,11 @@
 import type { JsonValue, ToolExecution } from "@isplay/core";
-import type { IsplaySdk } from "@isplay/sdk";
+import type { IsplaySdk, IsplaySdkOptions } from "@isplay/sdk";
 
 export type LangGraphAdapterOptions = {
   client?: IsplaySdk;
+  projectId?: string;
+  apiUrl?: string;
+  sdk?: Omit<IsplaySdkOptions, "projectId" | "baseUrl">;
   framework?: string;
   checkpointState?: "before" | "after" | "both" | "none";
 };

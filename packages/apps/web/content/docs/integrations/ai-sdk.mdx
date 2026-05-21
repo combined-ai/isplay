@@ -1,6 +1,6 @@
 ---
 title: AI SDK Adapter
-description: Capture AI SDK generate and stream calls with middleware, extract tool proposals, and wrap tool execute handlers.
+description: Capture AI SDK v6 generate and stream calls with language-model middleware, extract tool proposals, and wrap tool execute handlers.
 ---
 
 `@isplay/adapter-ai-sdk` provides middleware and tool wrappers for common AI SDK shapes.
@@ -16,7 +16,7 @@ Initialize the SDK in the process before model calls:
 ```ts
 import { init } from "@isplay/sdk";
 
-init({
+const client = init({
   projectId: process.env.ISPLAY_PROJECT_ID!,
   baseUrl: process.env.ISPLAY_API_URL,
 });
@@ -26,9 +26,10 @@ init({
 
 | Export | Purpose |
 | --- | --- |
-| `createIsplayMiddleware(options?)` | Returns AI SDK middleware with `wrapGenerate` and `wrapStream`. |
-| `instrumentTools(tools)` | Wraps AI SDK `execute` handlers. |
-| `recordToolProposals(modelCallId, result)` | Extracts tool calls from provider result and records proposals. |
+| `createIsplayMiddleware(options)` | Returns typed AI SDK v6 `LanguageModelMiddleware`. Requires `client` or `projectId`. |
+| `wrapIsplayModel(model, options)` | Wraps a v6 language model with isplay middleware using `wrapLanguageModel`. |
+| `instrumentTools(tools, options)` | Wraps AI SDK `execute` handlers. Requires `client` or `projectId`. |
+| `recordToolProposals(client, modelCallId, result)` | Extracts tool calls from provider result and records proposals. |
 | `extractToolCalls(value)` | Finds common tool-call shapes recursively. |
 | `extractLogprobSignals(value)` | Pulls logprob-like provider metadata. |
 | `inferProvider(model)` | Infers provider metadata from model object when possible. |
@@ -37,12 +38,15 @@ init({
 ## Middleware
 
 ```ts
-import { createIsplayMiddleware } from "@isplay/adapter-ai-sdk";
+import { createIsplayMiddleware, wrapIsplayModel } from "@isplay/adapter-ai-sdk";
 
 const isplayMiddleware = createIsplayMiddleware({
+  client,
   provider: "openai",
   model: "gpt-5.4-mini",
 });
+
+const model = wrapIsplayModel(yourModel, { client });
 ```
 
 The middleware:
@@ -61,18 +65,21 @@ For `wrapStream`, the model call finishes when the transformed stream flushes. I
 ```ts
 import { instrumentTools } from "@isplay/adapter-ai-sdk";
 
-const tools = instrumentTools({
-  lookupClaim: {
-    description: "Read claim details.",
-    inputSchema,
-    __isplaySideEffectClass: "read",
-    __isplaySchemaVersion: "1",
-    __isplayImplementationVersion: "2026-05-24",
-    async execute(args) {
-      return lookupClaim(args.claimId);
+const tools = instrumentTools(
+  {
+    lookupClaim: {
+      description: "Read claim details.",
+      inputSchema,
+      __isplaySideEffectClass: "read",
+      __isplaySchemaVersion: "1",
+      __isplayImplementationVersion: "2026-05-24",
+      async execute(args) {
+        return lookupClaim(args.claimId);
+      },
     },
   },
-});
+  { client }
+);
 ```
 
 `instrumentTools()` preserves non-executable tool entries. For tools with `execute`, it wraps execution with adapter-kit `wrapTool()`.
@@ -93,7 +100,7 @@ const tools = instrumentTools({
 ## Advice
 
 - Pass explicit provider/model options when inference is ambiguous.
-- Add `__isplaySideEffectClass` to every tool that can read, write, or mutate external systems.
+- Add `__isplaySideEffectClass` to every tool that can read, write, or mutate external systems. Shell/code-like names default to `external_mutation`; unknown tools remain `unknown`.
 - Capture tool schemas in context through adapter-kit if your tool definitions are not visible in request params.
 - Keep AI SDK calls inside `client.withRun()` or an adapter-managed run context.
 - Use `pause-for-fixture` replay policy for divergent tool calls; do not rerun side-effecting tools implicitly.

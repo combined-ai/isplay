@@ -21,6 +21,7 @@ export class RunCaptureClient extends IsplaySdkBase {
     return this.withRunContext({ runId: run.id, projectId: this.projectId }, async () => {
       try {
         const result = await fn(run);
+        await this.recordEvent("run.finished", { status: "ok" }, run.id);
         await this.api.patchRun(run.id, { status: "ok", endedAt: nowIso() });
         return result;
       } catch (error) {
@@ -47,9 +48,9 @@ export class RunCaptureClient extends IsplaySdkBase {
     });
   }
 
-  async recordEvent(type: string, data: unknown, refId?: string): Promise<EventRecord | undefined> {
+  async recordEvent(type: string, data: unknown, refId?: string): Promise<EventRecord> {
     const context = runStorage.getStore();
-    if (!context) return undefined;
+    if (!context) throw new Error("recordEvent() must be called inside withRun() or withRunContext(). Use tryRecordEvent() when intentional no-op capture is acceptable.");
     const captured = this.capture(data);
     const event = EventSchema.parse({
       id: createId("event"),
@@ -67,11 +68,17 @@ export class RunCaptureClient extends IsplaySdkBase {
     return event;
   }
 
+  async tryRecordEvent(type: string, data: unknown, refId?: string): Promise<EventRecord | undefined> {
+    const context = runStorage.getStore();
+    if (!context) return undefined;
+    return this.recordEvent(type, data, refId);
+  }
+
   async uploadArtifact(kind: string, payload: unknown, metadata: Record<string, JsonValue> = {}) {
     const context = runStorage.getStore();
     const captured = this.capture(payload);
     return this.api.createArtifact({
-      projectId: this.projectId,
+      projectId: context?.projectId ?? this.projectId,
       runId: context?.runId,
       kind,
       payload: captured.value,

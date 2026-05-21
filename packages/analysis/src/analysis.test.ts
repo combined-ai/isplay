@@ -70,7 +70,7 @@ describe("@isplay/analysis", () => {
     const stats = summarizeExperimentStatistics({
       projectId: "project_1",
       experimentId: "experiment_1",
-      replays: [{ id: "replay_1", createdAt: nowIso(), projectId: "project_1", runId: "run_1", status: "ok", policy: { model: "recorded-only", tool: "pause-for-fixture", drift: "continue_to_terminal", maxSteps: 100 }, metadata: {} }],
+      replays: [{ id: "replay_1", createdAt: nowIso(), projectId: "project_1", baseRunId: "run_1", status: "ok", policy: { model: "recorded-only", tool: "pause-for-fixture", drift: "continue_to_terminal", maxSteps: 100 }, metadata: {} }],
       metrics: [],
       attempts: [],
       fixtureUses: []

@@ -15,11 +15,14 @@ export async function startAttempt(store: IsplayStore, replay: Replay): Promise<
   return store.putReplayAttempt({
     id: createId("attempt"),
     createdAt: nowIso(),
+    recordVersion: 1,
     projectId: replay.projectId,
     replayId: replay.id,
-    runId: replay.runId,
+    baseRunId: replay.baseRunId,
     branchId: replay.branchId,
-    trialId: replay.trialId,
+    experimentId: replay.experimentId,
+    armId: replay.armId,
+    trialIndex: replay.trialIndex,
     status: "running",
     mode: replay.branchId ? "counterfactual" : "recorded",
     policy: replay.policy,
@@ -51,6 +54,7 @@ export async function recordPausedAttempt(
   await store.putReplayStep({
     id: createId("step"),
     createdAt: nowIso(),
+    recordVersion: 1,
     projectId: attempt.projectId,
     attemptId: attempt.id,
     replayId: attempt.replayId,
@@ -80,6 +84,7 @@ async function recordSteps(store: IsplayStore, attempt: ReplayAttempt, baseEvent
     await store.putReplayStep({
       id: createId("step"),
       createdAt: nowIso(),
+      recordVersion: 1,
       projectId: attempt.projectId,
       attemptId: attempt.id,
       replayId: attempt.replayId,
@@ -103,6 +108,7 @@ async function recordFixtureUses(store: IsplayStore, attempt: ReplayAttempt, eve
     await store.putFixtureUse({
       id: createId("fixture"),
       createdAt: nowIso(),
+      recordVersion: 1,
       projectId: attempt.projectId,
       attemptId: attempt.id,
       replayId: attempt.replayId,

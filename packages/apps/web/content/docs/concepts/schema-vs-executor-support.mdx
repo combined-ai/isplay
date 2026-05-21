@@ -19,11 +19,11 @@ isplay intentionally models more of the replay and experiment domain than the lo
 | --- | --- |
 | Live model replay | Schema exists; local engine errors without an explicit model executor. |
 | Live tool replay | Schema exists; local engine errors without an explicit tool executor. |
-| Experiment concurrency | Parsed but current runner is synchronous and serial. |
+| Experiment concurrency | Parsed but current runner is serial. |
 | `maxReplays` and `stopRule` | Parsed but not fully enforced by the current runner. |
-| `RunExperiment.wait` and CLI `--no-wait` | Parsed, but server runs synchronously and returns results. |
-| Worker jobs | Handlers are registered as stubs. |
-| Redaction encryption | Policy exists; current implementation masks rather than encrypts. |
+| `RunExperiment.wait` and CLI `--no-wait` | Implemented for replay and experiment jobs through Graphile Worker. |
+| Worker jobs | Replay and experiment jobs execute durably; diff/metric/export jobs are not separate tasks yet. |
+| Redaction encryption | Not a capture policy action in v0.3; use explicit storage/encryption outside capture policy. |
 
 ## How To Read Docs And Results
 

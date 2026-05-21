@@ -89,9 +89,8 @@ Managed runtime helpers infer side effects from tool names as a fallback. Overri
 | `drop` | Replace field with `null`. |
 | `hash` | Replace field with `[HASHED]`. |
 | `mask` | Replace field with `[REDACTED]`. |
-| `encrypt` | Replace field with `[REDACTED]`; no encryption is wired. |
-| `artifact_only` | Replace field with `[REDACTED]`. |
-| `metadata_only` | Replace field with `[REDACTED]`. |
+
+`encrypt`, `artifact_only`, and `metadata_only` are not capture policy actions in v0.3.
 
 Default redaction masks emails, phones, API-key-like tokens, JWTs, credit-card-like numbers, and secret-looking object keys.
 

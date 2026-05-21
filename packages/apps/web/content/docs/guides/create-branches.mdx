@@ -31,7 +31,7 @@ The branch inherits or stores replay policy. You can override policy when you ru
 npx isplay branch intervene <branchId> \
   --project "$ISPLAY_PROJECT_ID" \
   --kind prompt_clause_mask \
-  --target <target-id> \
+  --target-context <contextItemId> \
   --description "Remove the clause that permits auto-refunds"
 ```
 
@@ -41,7 +41,7 @@ For JSON patches:
 npx isplay branch intervene <branchId> \
   --project "$ISPLAY_PROJECT_ID" \
   --kind state_patch \
-  --target state.claim.status \
+  --target-context-path state.claim.status \
   --patch patch.json \
   --description "Set claim status to approved before decision"
 ```
@@ -50,12 +50,15 @@ npx isplay branch intervene <branchId> \
 
 | Target kind | Prefer when |
 | --- | --- |
-| Context item ID | You are testing a prompt, retrieval, memory, state, schema, or setting item. |
-| Event ID | You are testing a specific observed event. |
-| `refId` | You want the projection record linked to an event. |
-| Tool name | You are patching any call to one tool. |
-| Model call ID | You are patching one model boundary. |
-| JSON pointer | You know the exact artifact/state path. |
+| `--target-context` | You are testing a prompt, retrieval, memory, state, schema, or setting item. |
+| `--target-event` | You are testing a specific observed event. |
+| `--target-ref` or `--target` | You want the projection record linked to an event. |
+| `--target-type` | You want a specific event type. |
+| `--target-tool` | You are patching any call to one tool. |
+| `--target-model-call` | You are patching one model boundary. |
+| `--target-artifact` | You are patching by artifact identity. |
+| `--target-context-path` | You are patching a named context path. |
+| `--json-pointer` | You know the exact JSON path inside the matched event data. |
 
 ## Review Before Replay
 

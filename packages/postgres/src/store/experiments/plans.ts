@@ -48,6 +48,8 @@ export class ExperimentPlanStore extends ContextReadStore {
   }
 
   async updateExperiment(experiment: Experiment): Promise<Experiment> {
+    const current = await this.getExperiment(experiment.id);
+    if (current) validateExperimentTransition(current, experiment);
     await this.putProjection(experiment.id, experiment.projectId, undefined, "experiment", experiment.status, experiment);
     return experiment;
   }
@@ -128,14 +130,12 @@ export class ExperimentPlanStore extends ContextReadStore {
       projectId,
       branchId,
       kind: spec.kind,
-      targetId: targetId(spec),
+      target: spec.target,
+      operations: spec.operations,
       description: spec.description,
-      patch: spec.patch ?? { operations: spec.operations },
-      metadata: {
-        target: toJsonValue(spec.target),
-        operations: toJsonValue(spec.operations),
-        ...(spec.expectedBaseHash ? { expectedBaseHash: spec.expectedBaseHash } : {})
-      }
+      patch: spec.patch,
+      expectedBaseHash: spec.expectedBaseHash,
+      metadata: {}
     });
   }
 
@@ -147,12 +147,17 @@ export class ExperimentPlanStore extends ContextReadStore {
   }
 }
 
-function targetId(spec: InterventionSpec): string | undefined {
-  return spec.target.eventId ?? spec.target.refId ?? spec.target.toolName ?? spec.target.eventType ?? spec.target.modelCallId ?? spec.target.artifactId;
+function validateExperimentTransition(current: Experiment, next: Experiment): void {
+  if ((current.status === "completed" || current.status === "invalid") && next.status === "running") {
+    throw new Error(`Cannot transition terminal experiment ${current.id} back to running.`);
+  }
+  if ((next.status === "completed" || next.status === "invalid" || next.status === "paused") && !next.endedAt) {
+    throw new Error(`Experiment ${next.id} cannot enter status ${next.status} without endedAt.`);
+  }
 }
 
 function targetMatches(item: { id: string; path: string; sourceEventId?: string; contentArtifactId?: string; modelCallId?: string }, spec: InterventionSpec): boolean {
   return Boolean(
-    [spec.target.refId, spec.target.eventId, spec.target.artifactId, spec.target.modelCallId, spec.target.jsonPointer].filter(Boolean).some((value) => [item.id, item.sourceEventId, item.contentArtifactId, item.modelCallId, item.path].includes(value))
+    [spec.target.contextItemId, spec.target.contextPath, spec.target.refId, spec.target.eventId, spec.target.artifactId, spec.target.modelCallId, spec.target.jsonPointer].filter(Boolean).some((value) => [item.id, item.sourceEventId, item.contentArtifactId, item.modelCallId, item.path].includes(value))
   );
 }

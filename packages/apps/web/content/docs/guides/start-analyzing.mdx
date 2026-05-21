@@ -56,7 +56,7 @@ If we <intervention>, then <metric or effect> should <direction>, under <policy/
 
 ```bash
 npx isplay branch create --from <runId> --checkpoint <checkpointId> --project "$ISPLAY_PROJECT_ID"
-npx isplay branch intervene <branchId> --project "$ISPLAY_PROJECT_ID" --kind <kind> --target <targetId> --patch patch.json
+npx isplay branch intervene <branchId> --project "$ISPLAY_PROJECT_ID" --kind <kind> --target-ref <refId> --patch patch.json
 npx isplay replay <runId> --project "$ISPLAY_PROJECT_ID" --branch <branchId>
 npx isplay replay requirements <replayId>
 ```

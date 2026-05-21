@@ -39,6 +39,10 @@ Validation, not-found, and internal errors use:
 
 The server checks path IDs against body IDs for run events, checkpoints, model/tool records, branches, interventions, and fixtures.
 
+## Pagination
+
+List-style routes accept `limit` and `offset` where noted. Defaults are `limit=100&offset=0`; maximum `limit` is `500`.
+
 ## Project Routes
 
 | Method | Path | Purpose |
@@ -52,11 +56,11 @@ The server checks path IDs against body IDs for run events, checkpoints, model/t
 | Method | Path | Purpose |
 | --- | --- | --- |
 | `POST` | `/v1/runs` | Create run. |
-| `GET` | `/v1/runs?projectId=...` | List runs, optionally filtered by project. |
+| `GET` | `/v1/runs?projectId=...&limit=100&offset=0` | List runs, optionally filtered by project. |
 | `GET` | `/v1/runs/{id}` | Fetch run. |
 | `PATCH` | `/v1/runs/{id}` | Patch run status, timing, agent/name, or metadata. |
 | `POST` | `/v1/runs/{id}/events:batch` | Append ordered events. Returns `{ inserted }`. |
-| `GET` | `/v1/runs/{id}/events` | Fetch base events ordered by sequence. |
+| `GET` | `/v1/runs/{id}/events?limit=100&offset=0` | Fetch base events ordered by sequence. |
 | `POST` | `/v1/artifacts` | Store artifact payload. |
 | `GET` | `/v1/artifacts/{id}` | Fetch artifact metadata plus payload when file exists. |
 | `POST` | `/v1/runs/{id}/checkpoints` | Create checkpoint. |
@@ -72,7 +76,7 @@ The server checks path IDs against body IDs for run events, checkpoints, model/t
 | `GET` | `/v1/runs/{id}/context-inventory` | Reconstruct context inventory for a run. |
 | `GET` | `/v1/model-calls/{id}/context-inventory` | Filter inventory to one model call. |
 | `GET` | `/v1/checkpoints/{id}/context-inventory` | Filter inventory to one checkpoint. |
-| `POST` | `/v1/context/search` | Search context items by project, optional run, kinds, query, and limit. |
+| `POST` | `/v1/context/search` | Search context items by project, optional run, kinds, query, `limit`, and `offset`. |
 | `GET` | `/v1/runs/{id}/catalog` | Summarize run observed projections and next actions. |
 
 ## Branch And Intervention Routes
@@ -88,9 +92,10 @@ The server checks path IDs against body IDs for run events, checkpoints, model/t
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `POST` | `/v1/replays` | Create and immediately execute replay. |
+| `POST` | `/v1/replays` | Create replay. Executes immediately unless `wait: false`. |
 | `GET` | `/v1/replays/{id}` | Fetch replay. |
-| `GET` | `/v1/replays/{id}/events` | Fetch replay events or fallback base events. |
+| `GET` | `/v1/replays/{id}/events?limit=100&offset=0` | Fetch latest-attempt replay events or fallback base events. |
+| `GET` | `/v1/replays/{id}/attempts?limit=100&offset=0` | List append-only replay attempts. |
 | `GET` | `/v1/replays/{id}/fixture-requirements` | List fixture requirements. |
 | `GET` | `/v1/replays/{id}/diff` | List replay diffs. |
 | `GET` | `/v1/replays/{id}/metrics` | List replay metrics. |
@@ -98,7 +103,7 @@ The server checks path IDs against body IDs for run events, checkpoints, model/t
 | `POST` | `/v1/replays/{id}/tool-fixtures` | Create tool fixture and satisfy matching requirements. |
 | `POST` | `/v1/replays/{id}/resume` | Re-execute replay after fixtures are added. |
 
-`POST /v1/replays` returns `201` for finished replays and `202` for paused replays.
+`POST /v1/replays` returns `201` for finished replays and `202` for paused or queued replays. Queued replays include `metadata.jobId`.
 
 ## Experiment Routes
 
@@ -107,12 +112,12 @@ The server checks path IDs against body IDs for run events, checkpoints, model/t
 | `POST` | `/v1/experiments` | Create experiment plan. |
 | `POST` | `/v1/hypothesis-batches` | Create plan, run it, and return results. |
 | `GET` | `/v1/experiments/{id}` | Fetch experiment. |
-| `POST` | `/v1/experiments/{id}/run` | Run experiment synchronously. |
-| `GET` | `/v1/experiments/{id}/results` | Fetch aggregate result object. |
-| `GET` | `/v1/experiments/{id}/requirements` | List requirements across experiment replays. |
-| `GET` | `/v1/experiments/{id}/trial-matrix` | List arms and replay statuses. |
+| `POST` | `/v1/experiments/{id}/run` | Run experiment. Enqueues a durable job when `wait: false`. |
+| `GET` | `/v1/experiments/{id}/results?limit=100&offset=0` | Fetch aggregate result object with paged arrays. |
+| `GET` | `/v1/experiments/{id}/requirements?limit=100&offset=0` | List requirements across experiment replays. |
+| `GET` | `/v1/experiments/{id}/trial-matrix?limit=100&offset=0` | List arms and replay statuses. |
 | `GET` | `/v1/experiments/{id}/statistics` | Fetch experiment statistics. |
-| `GET` | `/v1/experiments/{id}/arm-comparison` | Currently returns trial matrix data. |
+| `GET` | `/v1/experiments/{id}/arm-comparison?limit=100&offset=0` | Currently returns trial matrix data. |
 | `GET` | `/v1/experiments/{id}/effects` | List experiment-level effects. |
 
 ## Effects And Analysis Routes
@@ -127,7 +132,7 @@ The server checks path IDs against body IDs for run events, checkpoints, model/t
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `GET` | `/v1/jobs/{id}/events` | Returns simple SSE events for current implementation. |
+| `GET` | `/v1/jobs/{id}/events` | Returns durable job lifecycle SSE from stored job events: `job.queued`, `job.enqueued`, `job.started`, then `job.finished` or `job.failed`. |
 
 ## Resource Relationships
 
@@ -135,7 +140,7 @@ The server checks path IDs against body IDs for run events, checkpoints, model/t
   <Step>Projects own runs, artifacts, branches, replays, fixtures, experiments, and analysis outputs.</Step>
   <Step>Runs own ordered events, model calls, tool proposals, tool executions, checkpoints, and run-scoped artifacts.</Step>
   <Step>Branches belong to a base run and checkpoint, then own interventions.</Step>
-  <Step>Replays belong to a project and run, optionally branch and trial, then produce replay events, requirements, diffs, metrics, fixture uses, attempts, and effects.</Step>
+  <Step>Replays belong to a project and base run, optionally branch and experiment arm with `trialIndex`, then produce replay events, requirements, diffs, metrics, fixture uses, attempts, and effects.</Step>
   <Step>Experiments own hypotheses and arms. Arms reference branches and replay IDs.</Step>
   <Step>Analysis runs reference a base run and optionally replay or experiment evidence.</Step>
 </Steps>

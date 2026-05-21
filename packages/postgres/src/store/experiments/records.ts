@@ -59,40 +59,44 @@ export class ExperimentStore extends CaptureStore {
       "SELECT data FROM projections WHERE kind = 'intervention' AND data->>'branchId' = $1 ORDER BY created_at ASC",
       [branchId]
     );
-    return result.rows.map((row) => InterventionSchema.parse(row.data));
+    return result.rows.map((row) => parseInterventionRecord(row.data));
   }
 
   async createReplay(input: CreateReplayInput): Promise<Replay> {
-    const run = await this.getRun(input.runId);
-    if (!run) throw new Error(`Run not found: ${input.runId}`);
+    const run = await this.getRun(input.baseRunId);
+    if (!run) throw new Error(`Run not found: ${input.baseRunId}`);
     if (run.projectId !== input.projectId) throw new Error("Replay projectId and run projectId differ");
     if (input.branchId) {
       const branch = await this.getBranch(input.branchId);
       if (!branch) throw new Error(`Branch not found: ${input.branchId}`);
       if (branch.projectId !== input.projectId) throw new Error("Replay projectId and branch projectId differ");
-      if (branch.baseRunId !== input.runId) throw new Error("Replay runId and branch baseRunId differ");
+      if (branch.baseRunId !== input.baseRunId) throw new Error("Replay baseRunId and branch baseRunId differ");
     }
     const record = ReplaySchema.parse({
       id: createId("replay"),
       createdAt: nowIso(),
       projectId: input.projectId,
-      runId: input.runId,
+      baseRunId: input.baseRunId,
       branchId: input.branchId,
-      trialId: input.trialId,
+      experimentId: input.experimentId,
+      armId: input.armId,
+      trialIndex: input.trialIndex,
       status: "queued",
       policy: input.policy ?? { model: "recorded-only", tool: "pause-for-fixture" },
       metadata: input.metadata ?? {}
     });
-    await this.putProjection(record.id, record.projectId, record.runId, "replay", record.status, record);
+    await this.putProjection(record.id, record.projectId, record.baseRunId, "replay", record.status, record);
     return record;
   }
 
   async getReplay(id: string): Promise<Replay | undefined> {
-    return this.getProjection(id, ReplaySchema.parse);
+    return this.getProjection(id, parseReplayRecord);
   }
 
   async updateReplay(record: Replay): Promise<Replay> {
-    await this.putProjection(record.id, record.projectId, record.runId, "replay", record.status, record);
+    const current = await this.getReplay(record.id);
+    if (current) validateReplayTransition(current, record);
+    await this.putProjection(record.id, record.projectId, record.baseRunId, "replay", record.status, record);
     return record;
   }
 
@@ -162,6 +166,39 @@ export class ExperimentStore extends CaptureStore {
       if (requirement.status !== "open" || !fixtureMatchesRequirement(fixture, requirement)) continue;
       await this.putFixtureRequirement({ ...requirement, status: "satisfied", satisfiedByFixtureId: fixture.id });
     }
+  }
+}
+
+function parseReplayRecord(value: unknown): Replay {
+  const record = normalizeLegacyObject(value);
+  if (!record.baseRunId && record.runId) {
+    record.baseRunId = record.runId;
+    delete record.runId;
+  }
+  return ReplaySchema.parse(record);
+}
+
+function parseInterventionRecord(value: unknown): Intervention {
+  const record = normalizeLegacyObject(value);
+  if (!record.target && record.targetId) {
+    record.target = { refId: String(record.targetId) };
+    delete record.targetId;
+  }
+  if (!record.operations) record.operations = [];
+  return InterventionSchema.parse(record);
+}
+
+function normalizeLegacyObject(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Expected object record.");
+  return { ...(value as Record<string, unknown>) };
+}
+
+function validateReplayTransition(current: Replay, next: Replay): void {
+  if ((current.status === "ok" || current.status === "error") && next.status === "running") {
+    throw new Error(`Cannot transition terminal replay ${current.id} back to running.`);
+  }
+  if ((next.status === "ok" || next.status === "error" || next.status === "paused") && !next.endedAt) {
+    throw new Error(`Replay ${next.id} cannot enter status ${next.status} without endedAt.`);
   }
 }
 
