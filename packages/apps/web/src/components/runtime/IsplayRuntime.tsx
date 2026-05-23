@@ -25,9 +25,15 @@ export function IsplayRuntime() {
   useEffect(() => {
     let mounted = true;
     const cleanups: Array<() => void> = [];
+    const finishInitialReveal = () => {
+      if (!mounted) return;
+      document.documentElement.classList.remove("wf-ix3-loading");
+    };
+    const revealFallback = window.setTimeout(finishInitialReveal, 5000);
 
     document.documentElement.classList.add("w-mod-js");
     if ("ontouchstart" in window) document.documentElement.classList.add("w-mod-touch");
+    window.addEventListener("__wf_ix3_ready", finishInitialReveal, { once: true });
 
     const year = document.getElementById("current-year");
     if (year) year.textContent = String(new Date().getFullYear());
@@ -54,10 +60,13 @@ export function IsplayRuntime() {
 
     enhance().catch((error) => {
       console.error("Failed to initialize Webflow enhancement", error);
+      finishInitialReveal();
     });
 
     return () => {
       mounted = false;
+      window.clearTimeout(revealFallback);
+      window.removeEventListener("__wf_ix3_ready", finishInitialReveal);
       cleanups.forEach((cleanup) => cleanup());
     };
   }, []);

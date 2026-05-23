@@ -2,7 +2,7 @@ import { BrandLogo } from "../shared/Logo";
 
 export function PreFooter() {
   return (
-    <footer preload-section="true" className="section_pre-footer">
+    <footer className="section_pre-footer">
       <div className="padding-global">
         <div className="container-large">
           <div className="pre-footer_wrapper">
@@ -35,7 +35,7 @@ export function PreFooter() {
 
 export function FooterWaves() {
   return (
-    <footer preload-section="true" className="section_footer">
+    <footer className="section_footer">
       <div className="padding-global">
         <div className="container-large">
           <div className="footer_wrapper">

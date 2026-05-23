@@ -42,7 +42,7 @@ function PlatformCard({ card }: { card: (typeof enterpriseCards)[number] }) {
 
 export function Platform() {
   return (
-    <section preload-section="true" className="section_enterprise">
+    <section className="section_enterprise">
       <div id="enterprise" className="scroll-anchor" />
       <div className="padding-global">
         <div className="container-large">

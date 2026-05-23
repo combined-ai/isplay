@@ -13,7 +13,7 @@ const evidenceItems = [
 
 export function About() {
   return (
-    <section preload-section="true" className="section_about">
+    <section className="section_about">
       <div id="about" className="scroll-anchor" />
       <div className="padding-global">
         <div className="container-large">

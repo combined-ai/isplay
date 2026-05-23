@@ -324,6 +324,19 @@ html {
     @apply flex flex-col items-start gap-3;
   }
 
+  html.wf-ix3-loading :is(
+    [data-fade-in="opacity"],
+    [data-fade-in="move"],
+    [data-fade-in-stagger="word"],
+    [data-fade-in-stagger="line"]
+  ) {
+    opacity: 0;
+  }
+
+  html.wf-ix3-loading [data-fade-in="move"] {
+    transform: translateY(50%);
+  }
+
   .section_hero {
     @apply relative z-[1] bg-[#010101];
   }

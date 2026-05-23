@@ -25,7 +25,7 @@ const plusClasses = [
 
 export function Install() {
   return (
-    <section preload-section="true" className="section_install">
+    <section className="section_install">
       <div className="padding-global">
         <div className="container-large">
           <div className="install_wrapper">

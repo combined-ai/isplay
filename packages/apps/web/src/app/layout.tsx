@@ -36,7 +36,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       data-wf-site="691621fbb0674afe0d3eb98c"
       data-scroll-behavior="smooth"
       lang="en"
-      className="w-mod-js w-mod-ix w-mod-ix3 dark"
+      className="w-mod-js w-mod-ix w-mod-ix3 wf-ix3-loading dark"
       suppressHydrationWarning
     >
       <body className="flex min-h-screen flex-col" suppressHydrationWarning>
