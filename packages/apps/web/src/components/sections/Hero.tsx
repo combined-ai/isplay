@@ -21,7 +21,7 @@ export function Hero() {
               </div>
               <div className="button-group">
                 <ButtonIcon label="Install" href="/docs/install" variant="white" eventName="Install-hero" />
-                <ButtonIcon label="Agent skill" href="/docs/install#recommended-agent-skill" variant="transparent" eventName="Skill-hero" />
+                <ButtonIcon label="Docs" href="/docs" variant="transparent" eventName="Docs-hero" />
               </div>
             </div>
             <div className="hero_overlay-grad" />
