@@ -337,6 +337,18 @@ html {
     transform: translateY(50%);
   }
 
+  html.wf-ix3-revealed :is(
+    [data-fade-in="opacity"],
+    [data-fade-in="move"],
+    [data-fade-in-stagger="word"],
+    [data-fade-in-stagger="line"]
+  ),
+  html.wf-ix3-revealed :is([data-fade-in-stagger="word"], [data-fade-in-stagger="line"]) * {
+    opacity: 1 !important;
+    transform: none !important;
+    visibility: visible !important;
+  }
+
   .section_hero {
     @apply relative z-[1] bg-[#010101];
   }

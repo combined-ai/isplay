@@ -28,8 +28,9 @@ export function IsplayRuntime() {
     const finishInitialReveal = () => {
       if (!mounted) return;
       document.documentElement.classList.remove("wf-ix3-loading");
+      document.documentElement.classList.add("wf-ix3-revealed");
     };
-    const revealFallback = window.setTimeout(finishInitialReveal, 5000);
+    const revealFallback = window.setTimeout(finishInitialReveal, 1500);
 
     document.documentElement.classList.add("w-mod-js");
     if ("ontouchstart" in window) document.documentElement.classList.add("w-mod-touch");
