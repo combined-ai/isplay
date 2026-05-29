@@ -78,4 +78,4 @@ export const jsonLd = {
 };
 
 export const skillInstallCommand =
-  "npx skills add isplay/isplay --skill isplay-analysis";
+  "npx skills add alonattt/isplay --skill isplay-analysis";

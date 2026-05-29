@@ -17,10 +17,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/isplay/isplay.git"
+    "url": "git+https://github.com/alonattt/isplay.git"
   },
   "bugs": {
-    "url": "https://github.com/isplay/isplay/issues"
+    "url": "https://github.com/alonattt/isplay/issues"
   },
   "homepage": "https://isplay.dev",
   "publishConfig": {

@@ -23,7 +23,9 @@
     "build:clean": "npm run clean && npm run build",
     "e2e:local": "npm run build && node scripts/e2e-local.mjs",
     "pack:check": "npm run build:clean && node scripts/package-smoke.mjs",
-    "ci": "npm run build:clean && npm test && npm run build:web && node scripts/package-smoke.mjs"
+    "ci": "npm run build:clean && npm test && npm run build:web && node scripts/package-smoke.mjs",
+    "release:publish": "node scripts/publish-public-workspaces.mjs",
+    "release:publish:dry-run": "node scripts/publish-public-workspaces.mjs --dry-run"
   },
   "keywords": [
     "agents",
