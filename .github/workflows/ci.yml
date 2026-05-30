@@ -59,7 +59,7 @@ jobs:
           ISPLAY_E2E_DATABASE_URL: postgres://postgres@127.0.0.1:5432/isplay_e2e
 
   vercel-production:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && vars.VERCEL_DEPLOY_ENABLED == 'true'
     needs:
       - validate
       - local-e2e
