@@ -1,6 +1,6 @@
 {
   "name": "isplay",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -14,17 +14,17 @@
     }
   },
   "dependencies": {
-    "@isplay/api-client": "0.3.1",
-    "@isplay/server": "0.3.1",
-    "@isplay/worker": "0.3.1",
+    "@isplay/api-client": "0.3.2",
+    "@isplay/server": "0.3.2",
+    "@isplay/worker": "0.3.2",
     "commander": "^14.0.3"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/alonattt/isplay.git"
+    "url": "git+https://github.com/combined-ai/isplay.git"
   },
   "bugs": {
-    "url": "https://github.com/alonattt/isplay/issues"
+    "url": "https://github.com/combined-ai/isplay/issues"
   },
   "homepage": "https://isplay.dev",
   "publishConfig": {

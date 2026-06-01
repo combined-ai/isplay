@@ -1,6 +1,6 @@
 {
   "name": "@isplay/server",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -11,10 +11,10 @@
     }
   },
   "dependencies": {
-    "@isplay/analysis": "0.3.1",
-    "@isplay/core": "0.3.1",
-    "@isplay/postgres": "0.3.1",
-    "@isplay/replay": "0.3.1",
+    "@isplay/analysis": "0.3.2",
+    "@isplay/core": "0.3.2",
+    "@isplay/postgres": "0.3.2",
+    "@isplay/replay": "0.3.2",
     "@hono/node-server": "^1.19.6",
     "@hono/zod-openapi": "^1.1.5",
     "graphile-worker": "^0.16.6",
@@ -23,10 +23,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/alonattt/isplay.git"
+    "url": "git+https://github.com/combined-ai/isplay.git"
   },
   "bugs": {
-    "url": "https://github.com/alonattt/isplay/issues"
+    "url": "https://github.com/combined-ai/isplay/issues"
   },
   "homepage": "https://isplay.dev",
   "publishConfig": {
