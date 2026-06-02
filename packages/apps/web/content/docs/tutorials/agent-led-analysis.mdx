@@ -8,10 +8,10 @@ The repo includes an `isplay-analysis` skill for Codex-style agents. It teaches 
 ## 1. Install The Skill
 
 ```bash
-npx skills add combined-ai/isplay --skill isplay-analysis
+npx skills add combined-ai/isplay --skill isplay-analysis -a codex
 ```
 
-The Skills CLI will detect supported agents and ask where to install the skill. Restart the agent app after installation.
+The command installs directly into Codex. Omit `-a codex` if you want the Skills CLI to prompt for another supported agent. Restart the agent app after installation.
 
 ## 2. Start With A Direct Prompt
 

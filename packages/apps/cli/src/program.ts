@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { Command } from "commander";
 import { registerAnalysisCommands } from "./commands/analysis.js";
 import { registerBranchCommands } from "./commands/branch.js";
@@ -11,7 +14,7 @@ import { isCommanderExit, printCliError } from "./lib/errors.js";
 
 export function createProgram(): Command {
   const program = new Command();
-  program.name("isplay").description("Replay and analysis infrastructure for AI agents").version("0.3.0").option("--json", "Emit JSON errors/diagnostics");
+  program.name("isplay").description("Replay and analysis infrastructure for AI agents").version(readPackageVersion()).option("--json", "Emit JSON errors/diagnostics");
 
   registerServerCommands(program);
   registerProjectCommands(program);
@@ -23,6 +26,12 @@ export function createProgram(): Command {
   registerAnalysisCommands(program);
 
   return program;
+}
+
+function readPackageVersion(): string {
+  const packageJsonPath = join(dirname(fileURLToPath(import.meta.url)), "../package.json");
+  const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8")) as { version?: unknown };
+  return typeof packageJson.version === "string" ? packageJson.version : "0.0.0";
 }
 
 export async function runCli(argv: string[]): Promise<void> {

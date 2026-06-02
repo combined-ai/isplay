@@ -25,14 +25,13 @@ Use the reference section when you need exact surfaces rather than workflow guid
   <Card title="Limits" href="/docs/reference/limits" description="Current implementation caveats, stubs, and behavior that should be documented honestly." />
 </Cards>
 
-## Public Packages
+## Package Names
 
 | Package | Purpose |
 | --- | --- |
 | `isplay` | Root package and CLI bin. |
-| `@isplay/cli` | Commander CLI. |
 | `@isplay/server` | Hono API server and OpenAPI registration. |
-| `@isplay/web` | Next/Fumadocs documentation site. |
+| `@isplay/web` | Private Next/Fumadocs documentation site workspace. |
 | `@isplay/worker` | Graphile Worker task registration for replay and experiment jobs. |
 | `@isplay/core` | Zod schemas, IDs, JSON serialization, capture policy, redaction. |
 | `@isplay/api-client` | OpenAPI fetch client and stable API errors. |
@@ -49,4 +48,4 @@ Use the reference section when you need exact surfaces rather than workflow guid
 | `@isplay/adapter-claude-code` | Claude Code hook and stream-json adapter. |
 | `@isplay/adapter-openclaw` | OpenClaw native plugin adapter. |
 
-All packages are ESM and export their root entrypoint.
+Published packages are ESM and export their root entrypoint.

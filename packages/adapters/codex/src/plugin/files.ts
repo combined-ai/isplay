@@ -1,3 +1,7 @@
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
 export type CodexPluginFiles = {
   "plugin.json": unknown;
   "hooks/hooks.json": unknown;
@@ -8,7 +12,7 @@ export function createCodexPluginFiles(command = "isplay-codex-hook"): CodexPlug
   return {
     "plugin.json": {
       name: "isplay",
-      version: "0.2.0",
+      version: readPackageVersion(),
       description: "isplay replay-grade capture, fixtures, and analysis for managed Codex runs.",
       skills: "./skills/",
       hooks: "./hooks/hooks.json",
@@ -30,4 +34,10 @@ export function createCodexPluginFiles(command = "isplay-codex-hook"): CodexPlug
       }
     }
   };
+}
+
+function readPackageVersion(): string {
+  const packageJsonPath = join(dirname(fileURLToPath(import.meta.url)), "../../package.json");
+  const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8")) as { version?: unknown };
+  return typeof packageJson.version === "string" ? packageJson.version : "0.0.0";
 }

@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { Context } from "hono";
 import { IsplayStore } from "@isplay/postgres";
 import { createApiApp, type AppBindings } from "./http.js";
@@ -21,7 +24,7 @@ export function createApp(store: IsplayStore) {
     openapi: "3.0.0",
     info: {
       title: "isplay API",
-      version: "0.3.0"
+      version: readPackageVersion()
     }
   });
 
@@ -43,6 +46,12 @@ export function createApp(store: IsplayStore) {
   });
 
   return app;
+}
+
+function readPackageVersion(): string {
+  const packageJsonPath = join(dirname(fileURLToPath(import.meta.url)), "../package.json");
+  const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8")) as { version?: unknown };
+  return typeof packageJson.version === "string" ? packageJson.version : "0.0.0";
 }
 
 function streamSse(c: Context, events: Array<{ event: string; data: unknown }>): Response {
