@@ -16,7 +16,7 @@
   <a href="https://www.npmjs.com/package/isplay"><img alt="npm downloads" src="https://img.shields.io/npm/dm/isplay?color=0f766e"></a>
   <a href="https://github.com/combined-ai/isplay/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/combined-ai/isplay/actions/workflows/ci.yml/badge.svg"></a>
   <a href="https://github.com/combined-ai/isplay/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/combined-ai/isplay?style=flat&logo=github"></a>
-  <a href="./LICENSE"><img alt="MIT license" src="https://img.shields.io/github/license/combined-ai/isplay"></a>
+  <a href="./LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-0f766e"></a>
 </p>
 
 <p align="center">
