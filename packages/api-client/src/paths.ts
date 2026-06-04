@@ -42,8 +42,10 @@ import type {
 } from "@isplay/core";
 
 type Json<T> = { content: { "application/json": T } };
+type Text<T> = { content: { "text/event-stream": T } };
 type Body<T> = { requestBody: Json<T> };
 type Ok<T> = { responses: { 200: Json<T> } };
+type OkText<T> = { responses: { 200: Text<T> } };
 type Created<T> = { responses: { 201: Json<T> } };
 type CreatedOrAccepted<T> = { responses: { 201: Json<T>; 202: Json<T> } };
 type OkOrAccepted<T> = { responses: { 200: Json<T>; 202: Json<T> } };
@@ -104,13 +106,16 @@ export type PageQuery = {
   offset?: number;
 };
 
+export type PatchRunInput = Partial<Pick<Run, "agentId" | "name" | "status" | "startedAt" | "endedAt" | "metadata">>;
+
 export type IsplayPaths = {
   "/health": { get: Ok<{ ok: boolean }> };
+  "/v1/jobs/{id}/events": { get: Path<{ id: string }> & OkText<string> };
   "/v1/projects": { post: Post<CreateProjectInput, Project> };
   "/v1/projects/{id}": { get: Path<{ id: string }> & Ok<Project> };
   "/v1/projects/{id}/catalog": { get: Path<{ id: string }> & Ok<Catalog> };
   "/v1/runs": { get: Query<{ projectId?: string } & PageQuery> & Ok<Run[]>; post: Post<CreateRunInput, Run> };
-  "/v1/runs/{id}": { get: Path<{ id: string }> & Ok<Run>; patch: Path<{ id: string }> & Body<Partial<Run>> & Ok<Run> };
+  "/v1/runs/{id}": { get: Path<{ id: string }> & Ok<Run>; patch: Path<{ id: string }> & Body<PatchRunInput> & Ok<Run> };
   "/v1/runs/{id}/events:batch": { post: Path<{ id: string }> & Body<{ events: EventRecord[] }> & Ok<{ inserted: number }> };
   "/v1/runs/{id}/events": { get: Path<{ id: string }> & Query<PageQuery> & Ok<EventRecord[]> };
   "/v1/runs/{id}/model-calls": { post: Path<{ id: string }> & PutEvent<ModelCall, ModelCall> };

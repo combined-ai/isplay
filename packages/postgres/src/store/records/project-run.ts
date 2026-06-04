@@ -15,6 +15,7 @@ import {
 import { StoreBase } from "../infrastructure/base.js";
 
 type PaginationOptions = { limit?: number; offset?: number };
+type RunPatchInput = Partial<Pick<Run, "agentId" | "name" | "status" | "startedAt" | "endedAt" | "metadata">>;
 
 export class ProjectRunStore extends StoreBase {
   async createProject(input: CreateProjectInput): Promise<Project> {
@@ -62,7 +63,7 @@ export class ProjectRunStore extends StoreBase {
     return result.rows.map((row) => RunSchema.parse(row.data));
   }
 
-  async patchRun(id: string, input: Partial<Run>): Promise<Run> {
+  async patchRun(id: string, input: RunPatchInput): Promise<Run> {
     const current = await this.getRun(id);
     if (!current) throw new Error(`Run not found: ${id}`);
     const updated = RunSchema.parse({ ...current, ...input });

@@ -3,6 +3,7 @@ import {
   CreateArtifactSchema,
   CreateCheckpointSchema,
   CreateRunSchema,
+  EventSchema,
   ModelCallSchema,
   RunSchema,
   ToolExecutionSchema,
@@ -36,8 +37,15 @@ const PatchRunSchema = z.object({
   endedAt: z.string().optional(),
   metadata: z.record(z.string(), z.any()).optional()
 });
-const PatchRunDoc = RunDoc.partial();
-const EventBatchSchema = z.object({ events: z.array(z.any()) });
+const PatchRunDoc = z.object({
+  agentId: z.string().optional(),
+  name: z.string().optional(),
+  status: z.enum(["running", "ok", "error", "cancelled"]).optional(),
+  startedAt: z.string().optional(),
+  endedAt: z.string().optional(),
+  metadata: z.record(z.string(), z.any()).optional()
+});
+const EventBatchSchema = z.object({ events: z.array(EventSchema) });
 const EventBatchDoc = z.object({ events: z.array(EventDoc) });
 const InsertedSchema = z.object({ inserted: z.number().int().nonnegative() });
 

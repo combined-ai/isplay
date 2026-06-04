@@ -1,10 +1,9 @@
 import { createRoute, z, type OpenAPIHono } from "@hono/zod-openapi";
 import { ContextSearchSchema } from "@isplay/core";
 import { ErrorResponseSchema, jsonBody, jsonContent, registerRoute, type AppBindings } from "../http.js";
+import { CatalogDoc, ContextInventoryDoc, ContextItemDoc, ContextSearchDoc } from "../openapi-schemas.js";
 
 const IdParamsSchema = z.object({ id: z.string() });
-const ContextInventoryDoc = z.any();
-const CatalogDoc = z.any();
 
 export function registerContextRoutes(app: OpenAPIHono<AppBindings>): void {
   registerRoute(
@@ -24,7 +23,7 @@ export function registerContextRoutes(app: OpenAPIHono<AppBindings>): void {
   );
   registerRoute(
     app,
-    createRoute({ method: "post", path: "/v1/context/search", request: { body: jsonBody(z.any()) }, responses: { 200: jsonContent(z.array(z.any()), "Context search results"), 400: jsonContent(ErrorResponseSchema, "Invalid request") } }),
+    createRoute({ method: "post", path: "/v1/context/search", request: { body: jsonBody(ContextSearchDoc) }, responses: { 200: jsonContent(z.array(ContextItemDoc), "Context search results"), 400: jsonContent(ErrorResponseSchema, "Invalid request") } }),
     async (c) => c.json(await c.var.store.searchContext(ContextSearchSchema.parse(c.req.valid("json"))), 200)
   );
   registerRoute(

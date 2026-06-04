@@ -1,6 +1,6 @@
 import { run, type Runner, type TaskList } from "graphile-worker";
+import { executeReplay, runExperiment } from "@isplay/application";
 import { IsplayStore } from "@isplay/postgres";
-import { executeReplay, runExperiment } from "@isplay/server";
 
 export type StartWorkerOptions = {
   connectionString: string;
@@ -25,26 +25,28 @@ export function createTaskList(options: StartWorkerOptions): TaskList {
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           await store.updateDurableJob(jobId, { status: "error", error: message });
-          await store.appendDurableJobEvent(jobId, "job.failed", { replayId, error: message }, { retryable: false });
+          await store.appendDurableJobEvent(jobId, "job.failed", { replayId, error: message }, { retryable: true });
+          throw error;
         }
       });
       helpers.logger.info("Replay job finished", { jobId, replayId });
     },
 
     "experiment.run": async (payload, helpers) => {
-      const { jobId, experimentId } = experimentPayload(payload);
+      const { jobId, experimentId, maxReplays } = experimentPayload(payload);
       await withStore(options, async (store) => {
         await store.updateDurableJob(jobId, { status: "running" });
         await store.appendDurableJobEvent(jobId, "job.started", { experimentId });
         try {
-          const result = await runExperiment(store, experimentId);
+          const result = await runExperiment(store, experimentId, { maxReplays });
           const status = result.status === "invalid" ? "error" : "ok";
           await store.updateDurableJob(jobId, { status, error: status === "error" ? "Experiment completed invalid" : undefined });
           await store.appendDurableJobEvent(jobId, status === "ok" ? "job.finished" : "job.failed", { experimentId, experimentStatus: result.status });
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           await store.updateDurableJob(jobId, { status: "error", error: message });
-          await store.appendDurableJobEvent(jobId, "job.failed", { experimentId, error: message }, { retryable: false });
+          await store.appendDurableJobEvent(jobId, "job.failed", { experimentId, error: message }, { retryable: true });
+          throw error;
         }
       });
       helpers.logger.info("Experiment job finished", { jobId, experimentId });
@@ -75,9 +77,9 @@ function replayPayload(payload: unknown): { jobId: string; replayId: string } {
   return { jobId: stringPayload(record, "jobId"), replayId: stringPayload(record, "replayId") };
 }
 
-function experimentPayload(payload: unknown): { jobId: string; experimentId: string } {
+function experimentPayload(payload: unknown): { jobId: string; experimentId: string; maxReplays?: number } {
   const record = objectPayload(payload);
-  return { jobId: stringPayload(record, "jobId"), experimentId: stringPayload(record, "experimentId") };
+  return { jobId: stringPayload(record, "jobId"), experimentId: stringPayload(record, "experimentId"), maxReplays: optionalPositiveIntegerPayload(record, "maxReplays") };
 }
 
 function objectPayload(payload: unknown): Record<string, unknown> {
@@ -89,7 +91,15 @@ function stringPayload(payload: Record<string, unknown>, key: string): string {
   const value = payload[key];
   if (typeof value !== "string") throw new Error(`Expected ${key} in job payload.`);
   return value;
-};
+}
+
+function optionalPositiveIntegerPayload(payload: Record<string, unknown>, key: string): number | undefined {
+  const value = payload[key];
+  if (value === undefined) return undefined;
+  const number = typeof value === "number" ? value : typeof value === "string" ? Number(value) : Number.NaN;
+  if (!Number.isInteger(number) || number <= 0) throw new Error(`Expected ${key} in job payload to be a positive integer.`);
+  return number;
+}
 
 export async function startWorker(options: StartWorkerOptions): Promise<Runner> {
   return run({

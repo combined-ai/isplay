@@ -11,13 +11,11 @@
     }
   },
   "dependencies": {
-    "@isplay/analysis": "0.3.2",
+    "@isplay/application": "0.3.2",
     "@isplay/core": "0.3.2",
     "@isplay/postgres": "0.3.2",
-    "@isplay/replay": "0.3.2",
     "@hono/node-server": "^1.19.6",
     "@hono/zod-openapi": "^1.1.5",
-    "graphile-worker": "^0.16.6",
     "hono": "^4.10.8",
     "zod": "^4.1.13"
   },
@@ -38,9 +36,9 @@
     "README.md",
     "LICENSE"
   ],
-  "description": "Hono API server, OpenAPI routes, inline runners, and job enqueueing for isplay.",
+  "description": "Hono API server and OpenAPI routes for isplay.",
   "license": "MIT",
   "engines": {
-    "node": ">=22.5.0"
+    "node": ">=22.22.0"
   }
 }

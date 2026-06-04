@@ -33,6 +33,6 @@ export function instrumentTools<T extends Record<string, AiSdkTool>>(tools: T, o
 function classifyToolName(name: string): SideEffectClass {
   const lower = name.toLowerCase();
   if (/(bash|shell|exec|terminal|command|code|python|node|script|deploy|send|delete|remove|write|edit|patch|apply)/.test(lower)) return "external_mutation";
-  if (/(search|read|fetch|get|list|query|lookup|retrieve)/.test(lower)) return "read";
+  if (/(search|read|fetch|grep|get|list|query|lookup|retrieve)/.test(lower)) return "read";
   return "unknown";
 }

@@ -15,7 +15,8 @@ export class RuntimeRunRegistry {
 
   async ensure(input: RuntimeRunInput): Promise<Run> {
     const existing = this.runs.get(input.key);
-    if (existing) return existing;
+    if (existing && !isTerminalStatus(existing.status)) return existing;
+    if (existing) this.runs.delete(input.key);
     const createInput: CreateRunInput = {
       projectId: this.client.projectId,
       name: input.name ?? `${input.framework}:${input.key}`,
@@ -34,6 +35,14 @@ export class RuntimeRunRegistry {
   async finish(key: string, status: "ok" | "error" | "cancelled", metadata: Record<string, JsonValue> = {}): Promise<void> {
     const run = this.runs.get(key);
     if (!run) return;
-    await this.client.api.patchRun(run.id, { status, endedAt: new Date().toISOString(), metadata: { ...run.metadata, ...metadata } });
+    try {
+      await this.client.api.patchRun(run.id, { status, endedAt: new Date().toISOString(), metadata: { ...run.metadata, ...metadata } });
+    } finally {
+      this.runs.delete(key);
+    }
   }
+}
+
+function isTerminalStatus(status: Run["status"]): boolean {
+  return status === "ok" || status === "error" || status === "cancelled";
 }

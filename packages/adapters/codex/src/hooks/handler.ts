@@ -45,24 +45,43 @@ export class CodexHookHandler {
     const execution = await this.options.client.startToolExecution({ proposalId: proposal?.id, toolCallId: input.tool_use_id, toolName, args: input.tool_input, sideEffectClass: sideEffectFromToolName(toolName) });
     if (input.tool_use_id) this.executions.set(input.tool_use_id, execution);
     const decision = await this.fixtures.resolveToolCall({ runtime: "codex", runKey: this.options.keyOf(input), toolName, toolCallId: input.tool_use_id, args: toJsonValue(input.tool_input), sideEffectClass: execution.sideEffectClass });
-    if (decision.action === "block" || decision.action === "require_fixture") return denyCodex(hookEventName, decision.reason);
-    return decision.action === "inject" && !this.options.postToolReplacement ? denyCodex(hookEventName, "isplay fixture is available, but public Codex cannot inject it before built-in execution.") : {};
+    if (decision.action === "block" || decision.action === "require_fixture") {
+      await this.blockExecution(input.tool_use_id, execution, decision.reason, decision.action);
+      return denyCodex(hookEventName, decision.reason);
+    }
+    if (decision.action === "inject" && !this.options.postToolReplacement) {
+      const reason = "isplay fixture is available, but public Codex cannot inject it before built-in execution.";
+      await this.blockExecution(input.tool_use_id, execution, reason, "inject_unsupported");
+      return denyCodex(hookEventName, reason);
+    }
+    return {};
   }
 
   private async onPostTool(input: CodexHookInput): Promise<CodexHookOutput> {
     const execution = input.tool_use_id ? this.executions.get(input.tool_use_id) : undefined;
-    if (execution) await this.options.client.finishToolExecution(execution, { output: input.tool_response });
     const toolName = input.tool_name ?? "unknown";
     const decision = await this.fixtures.resolveToolCall({ runtime: "codex", runKey: this.options.keyOf(input), toolName, toolCallId: input.tool_use_id, args: toJsonValue(input.tool_input), sideEffectClass: sideEffectFromToolName(toolName) });
     if (decision.action === "inject" && this.options.postToolReplacement) {
+      if (execution) await this.finishExecution(input.tool_use_id, execution, { fixtureId: decision.fixture.id, fixtureProvenance: decision.fixture.provenance, output: decision.output });
       return { decision: "block", continue: false, reason: JSON.stringify(decision.output), hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: JSON.stringify(decision.output) } };
     }
+    if (execution) await this.finishExecution(input.tool_use_id, execution, input.tool_response);
     return {};
   }
 
   private async onStop(input: CodexHookInput): Promise<CodexHookOutput> {
     if (input.last_assistant_message) await this.options.client.annotateContext({ kind: "assistant_message", path: "codex.last_assistant_message", value: input.last_assistant_message, provenance: "codex.Stop" });
     return {};
+  }
+
+  private async finishExecution(toolCallId: string | undefined, execution: Awaited<ReturnType<IsplaySdk["startToolExecution"]>>, output: unknown): Promise<void> {
+    await this.options.client.finishToolExecution(execution, { output });
+    if (toolCallId) this.executions.delete(toolCallId);
+  }
+
+  private async blockExecution(toolCallId: string | undefined, execution: Awaited<ReturnType<IsplaySdk["startToolExecution"]>>, reason: string, fixtureDecision: string): Promise<void> {
+    await this.options.client.blockToolExecution(execution, reason, { fixtureDecision });
+    if (toolCallId) this.executions.delete(toolCallId);
   }
 }
 

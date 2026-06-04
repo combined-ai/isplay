@@ -19,11 +19,11 @@
     "build:web": "npm run build -w @isplay/web",
     "start:web": "npm run start -w @isplay/web",
     "demo:mastra-claims": "tsx --tsconfig resources/examples/mastra-claims-agent/tsconfig.json resources/examples/mastra-claims-agent/src/run.ts",
-    "clean": "tsc -b --clean && find packages -type d -name dist -prune -exec rm -rf {} + && rm -rf packages/apps/web/.next",
+    "clean": "tsc -b --clean && find packages -path '*/node_modules/*' -prune -o -type d -name dist -prune -exec rm -rf {} + && rm -rf packages/apps/web/.next",
     "build:clean": "npm run clean && npm run build",
     "e2e:local": "npm run build && node scripts/e2e-local.mjs",
     "pack:check": "npm run build:clean && node scripts/package-smoke.mjs",
-    "ci": "npm run build:clean && npm test && npm run build:web && node scripts/package-smoke.mjs",
+    "ci": "npm run build:clean && npm test && npm run build:web && node scripts/package-smoke.mjs && npm audit --omit=dev --audit-level=moderate",
     "release:publish": "node scripts/publish-public-workspaces.mjs",
     "release:publish:dry-run": "node scripts/publish-public-workspaces.mjs --dry-run"
   },
@@ -54,7 +54,6 @@
   "devDependencies": {
     "@mastra/core": "^1.37.1",
     "@types/node": "24.10.1",
-    "@types/pg": "^8.15.6",
     "mastra": "^1.10.2",
     "tsx": "4.21.0",
     "typescript": "5.9.3",

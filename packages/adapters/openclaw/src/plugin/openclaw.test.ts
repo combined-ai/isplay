@@ -31,6 +31,20 @@ describe("OpenClaw adapter", () => {
     expect(events.map((event) => (event as { type: string }).type)).toContain("startModelCall");
     expect(events.map((event) => (event as { type: string }).type)).toContain("annotateContext");
     expect(events.map((event) => (event as { type: string }).type)).toContain("recordToolProposal");
+    expect(events).toContainEqual(expect.objectContaining({ type: "finishToolExecution", input: { output: { fixtureId: "fixture_1", fixtureProvenance: "analyst_fixture", output: { answer: "fixture" } }, error: undefined } }));
+  });
+
+  it("records terminal event before finishing an OpenClaw run", async () => {
+    const events: unknown[] = [];
+    const adapter = createOpenClawAdapter({ client: fakeClient(events) });
+
+    await adapter.handleHook("session_start", { runId: "oc_run" });
+    await adapter.handleHook("session_end", { runId: "oc_run" });
+
+    const recordIndex = events.findIndex((event) => (event as { type?: string; eventType?: string }).type === "recordEvent" && (event as { eventType?: string }).eventType === "openclaw.session_end");
+    const patchIndex = events.findIndex((event) => (event as { type?: string }).type === "patchRun");
+    expect(recordIndex).toBeGreaterThanOrEqual(0);
+    expect(patchIndex).toBeGreaterThan(recordIndex);
   });
 });
 
@@ -66,6 +80,9 @@ function fakeClient(events: unknown[]): IsplaySdk {
     },
     async finishToolExecution(execution: unknown, input: unknown) {
       events.push({ type: "finishToolExecution", execution, input });
+    },
+    async blockToolExecution(execution: unknown, reason: string, metadata: unknown) {
+      events.push({ type: "blockToolExecution", execution, reason, metadata });
     },
     async annotateContext(input: unknown) {
       events.push({ type: "annotateContext", input });

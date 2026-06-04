@@ -31,6 +31,21 @@ describe("IsplayApiClient", () => {
       body: { error: "boom", details: { requestId: "req_1" } }
     } satisfies Partial<IsplayApiError>);
   });
+
+  it("reads job events through the typed OpenAPI path", async () => {
+    const requests: Request[] = [];
+    const client = new IsplayApiClient({
+      baseUrl: "http://isplay.test",
+      fetch: async (input) => {
+        requests.push(input as Request);
+        return new Response("event: job.finished\n\n", { status: 200, headers: { "content-type": "text/event-stream" } });
+      }
+    });
+
+    await expect(client.getJobEvents("job_1")).resolves.toBe("event: job.finished\n\n");
+    expect(requests[0]?.method).toBe("GET");
+    expect(new URL(requests[0]?.url ?? "").pathname).toBe("/v1/jobs/job_1/events");
+  });
 });
 
 function jsonResponse(status: number, value: unknown): Response {

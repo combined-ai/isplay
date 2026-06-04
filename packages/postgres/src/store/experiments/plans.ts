@@ -1,17 +1,22 @@
 import {
+  BranchSchema,
   createId,
   ExperimentArmSchema,
   ExperimentSchema,
   HypothesisSchema,
+  InterventionSchema,
   nowIso,
   toJsonValue,
+  type Branch,
   type CreateHypothesisBatchInput,
   type Experiment,
   type ExperimentArm,
   type Hypothesis,
+  type Intervention,
   type InterventionSpec,
   type Replay
 } from "@isplay/core";
+import type { PoolClient } from "pg";
 import { ContextReadStore } from "../context/context-read.js";
 
 export type CreatedExperimentPlan = {
@@ -24,23 +29,25 @@ type PlanInput = CreateHypothesisBatchInput & { status?: "draft" | "queued" };
 
 export class ExperimentPlanStore extends ContextReadStore {
   async createExperimentPlan(input: PlanInput): Promise<CreatedExperimentPlan> {
-    const experiment = ExperimentSchema.parse({
-      id: createId("experiment"),
-      createdAt: nowIso(),
-      projectId: input.projectId,
-      name: input.name,
-      baseRunIds: input.baseRunIds,
-      checkpointSelector: input.checkpointSelector,
-      trialPlan: input.trialPlan,
-      policy: input.policy,
-      validityGates: input.validityGates,
-      status: input.status ?? "queued",
-      metadata: input.metadata ?? {}
+    return this.withTransaction(async (client) => {
+      const experiment = ExperimentSchema.parse({
+        id: createId("experiment"),
+        createdAt: nowIso(),
+        projectId: input.projectId,
+        name: input.name,
+        baseRunIds: input.baseRunIds,
+        checkpointSelector: input.checkpointSelector,
+        trialPlan: input.trialPlan,
+        policy: input.policy,
+        validityGates: input.validityGates,
+        status: input.status ?? "queued",
+        metadata: input.metadata ?? {}
+      });
+      await this.putProjectionOn(client, experiment.id, experiment.projectId, undefined, "experiment", experiment.status, experiment);
+      const hypotheses = await this.materializeHypotheses(input, experiment.id, client);
+      const arms = await this.materializeArms(input, experiment, hypotheses, client);
+      return { experiment, hypotheses, arms };
     });
-    await this.putProjection(experiment.id, experiment.projectId, undefined, "experiment", experiment.status, experiment);
-    const hypotheses = await this.materializeHypotheses(input, experiment.id);
-    const arms = await this.materializeArms(input, experiment, hypotheses);
-    return { experiment, hypotheses, arms };
   }
 
   async getExperiment(id: string): Promise<Experiment | undefined> {
@@ -89,27 +96,45 @@ export class ExperimentPlanStore extends ContextReadStore {
     return replays.filter((replay): replay is Replay => Boolean(replay));
   }
 
-  private async materializeHypotheses(input: PlanInput, experimentId: string): Promise<Hypothesis[]> {
+  private async materializeHypotheses(input: PlanInput, experimentId: string, client: PoolClient): Promise<Hypothesis[]> {
     const hypotheses = input.hypotheses.map((hypothesis) =>
       HypothesisSchema.parse({ id: createId("hypothesis"), createdAt: nowIso(), projectId: input.projectId, experimentId, metadata: {}, ...hypothesis })
     );
-    for (const hypothesis of hypotheses) await this.putProjection(hypothesis.id, hypothesis.projectId, undefined, "hypothesis", undefined, hypothesis);
+    for (const hypothesis of hypotheses) await this.putProjectionOn(client, hypothesis.id, hypothesis.projectId, undefined, "hypothesis", undefined, hypothesis);
     return hypotheses;
   }
 
-  private async materializeArms(input: PlanInput, experiment: Experiment, hypotheses: Hypothesis[]): Promise<ExperimentArm[]> {
+  private async materializeArms(input: PlanInput, experiment: Experiment, hypotheses: Hypothesis[], client: PoolClient): Promise<ExperimentArm[]> {
     const arms: ExperimentArm[] = [];
     for (const runId of input.baseRunIds) {
+      const run = await this.getRun(runId);
+      if (!run) throw new Error(`Run not found: ${runId}`);
+      if (run.projectId !== input.projectId) throw new Error("Experiment projectId and run projectId differ");
       const checkpointId = await this.selectCheckpoint(runId, input.checkpointSelector);
       for (const hypothesis of hypotheses) {
-        const branch = await this.createBranch({ projectId: input.projectId, baseRunId: runId, checkpointId, name: hypothesis.statement.slice(0, 80), replayPolicy: input.policy });
-        for (const spec of hypothesis.interventions) await this.createInterventionFromSpec(input.projectId, runId, branch.id, spec);
+        const branch = await this.createExperimentBranch(input, runId, checkpointId, hypothesis, client);
+        for (const spec of hypothesis.interventions) await this.createInterventionFromSpec(input.projectId, runId, branch.id, spec, client);
         const arm = ExperimentArmSchema.parse({ id: createId("arm"), createdAt: nowIso(), projectId: input.projectId, experimentId: experiment.id, hypothesisId: hypothesis.id, baseRunId: runId, branchId: branch.id, replayIds: [], status: "queued", metadata: {} });
-        await this.updateExperimentArm(arm);
+        await this.putProjectionOn(client, arm.id, arm.projectId, arm.baseRunId, "experiment_arm", arm.status, arm);
         arms.push(arm);
       }
     }
     return arms;
+  }
+
+  private async createExperimentBranch(input: PlanInput, runId: string, checkpointId: string, hypothesis: Hypothesis, client: PoolClient): Promise<Branch> {
+    const record = BranchSchema.parse({
+      id: createId("branch"),
+      createdAt: nowIso(),
+      projectId: input.projectId,
+      baseRunId: runId,
+      checkpointId,
+      name: hypothesis.statement.slice(0, 80),
+      replayPolicy: input.policy,
+      metadata: {}
+    });
+    await this.putProjectionOn(client, record.id, record.projectId, record.baseRunId, "branch", undefined, record);
+    return record;
   }
 
   private async selectCheckpoint(runId: string, selector: PlanInput["checkpointSelector"]): Promise<string> {
@@ -124,9 +149,11 @@ export class ExperimentPlanStore extends ContextReadStore {
     return selected.id;
   }
 
-  private async createInterventionFromSpec(projectId: string, runId: string, branchId: string, spec: InterventionSpec) {
+  private async createInterventionFromSpec(projectId: string, runId: string, branchId: string, spec: InterventionSpec, client: PoolClient): Promise<Intervention> {
     await this.assertExpectedHash(runId, spec);
-    return this.createIntervention({
+    const record = InterventionSchema.parse({
+      id: createId("intervention"),
+      createdAt: nowIso(),
       projectId,
       branchId,
       kind: spec.kind,
@@ -137,6 +164,8 @@ export class ExperimentPlanStore extends ContextReadStore {
       expectedBaseHash: spec.expectedBaseHash,
       metadata: {}
     });
+    await this.putProjectionOn(client, record.id, record.projectId, runId, "intervention", undefined, record);
+    return record;
   }
 
   private async assertExpectedHash(runId: string, spec: InterventionSpec): Promise<void> {

@@ -38,6 +38,6 @@
   "description": "AI SDK v6 telemetry and tool instrumentation for isplay.",
   "license": "MIT",
   "engines": {
-    "node": ">=22.5.0"
+    "node": ">=22.22.0"
   }
 }

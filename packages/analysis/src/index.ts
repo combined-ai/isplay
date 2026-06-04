@@ -18,6 +18,7 @@ export type AnalysisInput = {
   projectId: string;
   baseRunId: string;
   experimentId?: string;
+  replayId?: string;
   diffs: DiffRecord[];
   metrics: Metric[];
 };
@@ -31,16 +32,18 @@ export type AnalysisOutput = {
 
 export function createAnalysisRun(input: AnalysisInput): AnalysisOutput {
   const labels = validityLabelsFor(input.diffs, input.metrics);
-  const analysisRun = AnalysisRunSchema.parse({
+  const parsedAnalysisRun = AnalysisRunSchema.parse({
     id: createId("analysis"),
     createdAt: nowIso(),
     projectId: input.projectId,
     baseRunId: input.baseRunId,
     experimentId: input.experimentId,
+    replayId: input.replayId,
     validityLabels: labels,
     summary: summarize(labels),
     metadata: {}
   });
+  const analysisRun: AnalysisRun = input.replayId ? { ...parsedAnalysisRun, replayId: input.replayId } : parsedAnalysisRun;
   const evidenceNodes = input.diffs.map((diff) =>
     EvidenceNodeSchema.parse({
       id: createId("evidence"),

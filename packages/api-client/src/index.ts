@@ -11,5 +11,6 @@ export type {
   HypothesisBatchCreateResponse,
   IsplayPaths,
   PageQuery,
+  PatchRunInput,
   TrialMatrixRow
 } from "./paths.js";

@@ -26,6 +26,7 @@ describe("@isplay/analysis", () => {
     const output = createAnalysisRun({
       projectId: "project_1",
       baseRunId: "run_1",
+      replayId: "replay_1",
       diffs: [],
       metrics: [
         MetricSchema.parse({
@@ -40,9 +41,30 @@ describe("@isplay/analysis", () => {
         })
       ]
     });
-    expect(output.analysisRun.validityLabels).toContain("confirmed_by_replay");
+    expect(output.analysisRun.replayId).toBe("replay_1");
+    expect(output.analysisRun.validityLabels).toContain("unsupported");
+    expect(output.analysisRun.validityLabels).not.toContain("confirmed_by_replay");
     expect(output.evidenceNodes.length).toBeGreaterThan(0);
     expect(output.scores[0]?.name).toBe("analysis_validity_score");
+  });
+
+  it("does not confirm replay evidence from metrics alone", () => {
+    const labels = validityLabelsFor(
+      [],
+      [
+        MetricSchema.parse({
+          id: createId("metric"),
+          createdAt: nowIso(),
+          projectId: "project_1",
+          replayId: "replay_1",
+          name: "tool_sequence_distance",
+          value: 0,
+          provenance: "deterministic",
+          metadata: {}
+        })
+      ]
+    );
+    expect(labels).toEqual(["unsupported"]);
   });
 
   it("ranks actionable effects and marks low-N results inconclusive", () => {

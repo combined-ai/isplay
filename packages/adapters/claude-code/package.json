@@ -36,6 +36,6 @@
   "description": "Claude Code hook and stream-json adapter for isplay.",
   "license": "MIT",
   "engines": {
-    "node": ">=22.5.0"
+    "node": ">=22.22.0"
   }
 }

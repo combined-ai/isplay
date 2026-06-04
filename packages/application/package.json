@@ -1,0 +1,42 @@
+{
+  "name": "@isplay/application",
+  "version": "0.3.2",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@isplay/analysis": "0.3.2",
+    "@isplay/core": "0.3.2",
+    "@isplay/postgres": "0.3.2",
+    "@isplay/replay": "0.3.2",
+    "graphile-worker": "^0.16.6"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/combined-ai/isplay.git"
+  },
+  "bugs": {
+    "url": "https://github.com/combined-ai/isplay/issues"
+  },
+  "homepage": "https://isplay.dev",
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "description": "Application orchestration for isplay replay, experiments, and durable jobs.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.22.0"
+  }
+}

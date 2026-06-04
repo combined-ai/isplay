@@ -1,8 +1,7 @@
-import type { JsonValue, SideEffectClass } from "@isplay/core";
+import { toJsonValue as coreToJsonValue, type JsonValue, type SideEffectClass } from "@isplay/core";
 
 export function toJsonValue(value: unknown): JsonValue {
-  if (value === undefined) return null;
-  return JSON.parse(JSON.stringify(value)) as JsonValue;
+  return coreToJsonValue(value);
 }
 
 export function objectRecord(value: unknown): Record<string, unknown> {

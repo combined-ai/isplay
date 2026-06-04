@@ -67,6 +67,16 @@ describe("@isplay/replay", () => {
     expect(result.status).toBe("error");
   });
 
+  it("rejects provider fixture model policy until model fixture replay is implemented", () => {
+    const result = new ReplayEngine().run({
+      replay: makeReplay(),
+      baseEvents: [],
+      policy: { model: "provider-fixture", tool: "pause-for-fixture", drift: "continue_to_terminal", maxSteps: 100 }
+    });
+    expect(result.status).toBe("error");
+    if (result.status === "error") expect(result.error).toContain("provider-fixture");
+  });
+
   it("applies targeted interventions to branch events", () => {
     const base = [event(0, "tool.started", "tool_1", { toolName: "search", args: { query: "old" }, argsArtifactId: "artifact_old" })];
     const interventions: Intervention[] = [
@@ -87,6 +97,34 @@ describe("@isplay/replay", () => {
       argsHash: stableHash({ query: "new" })
     });
     expect(applyInterventions(base, interventions, "replay_1", "run_1")[0]?.data).not.toHaveProperty("argsArtifactId");
+  });
+
+  it("records patch failures without marking target events as applied", () => {
+    const base = [event(0, "model_call.started", "model_1", { prompt: "Use strict fraud rules." })];
+    const interventions: Intervention[] = [
+      {
+        id: "intervention_1",
+        createdAt: nowIso(),
+        projectId: "project_1",
+        branchId: "branch_1",
+        kind: "message_patch",
+        target: { refId: "model_1" },
+        operations: [{ op: "replace", path: "/missing", value: "new" }],
+        metadata: {}
+      }
+    ];
+    const branch = applyInterventions(base, interventions, "replay_1", "run_1");
+    expect(branch[0]?.data).toEqual(base[0]?.data);
+    expect(branch[0]?.metadata.targetStatus).toBeUndefined();
+    expect(branch[1]).toMatchObject({
+      type: "intervention.created",
+      refId: "intervention_1",
+      metadata: {
+        targetStatus: "patch_failed",
+        targetEventId: base[0]?.id
+      }
+    });
+    expect(branch[1]?.metadata.patchError).toEqual(expect.any(String));
   });
 
   it("applies typed JSON Patch interventions to prompt-like event data", () => {
@@ -157,6 +195,19 @@ describe("@isplay/replay", () => {
     expect(metrics.find((metric) => metric.name === "first_divergence_step")?.value).toBe(1);
   });
 
+  it("aligns length-only divergence comparability between diff and engine", () => {
+    const base = [event(0, "model_call.finished", "model_1", { text: "A" })];
+    const branch = [
+      event(0, "model_call.finished", "model_1", { text: "A" }),
+      event(1, "model_call.finished", "model_2", { text: "B" })
+    ];
+    const { diffs } = computeReplayDiff({ projectId: "project_1", replayId: "replay_1", baseEvents: base, branchEvents: branch });
+    const result = new ReplayEngine().run({ replay: makeReplay(), baseEvents: base, branchEvents: branch });
+    expect(diffs[0]?.comparability).toBe("aligned");
+    expect(result.status).toBe("ok");
+    if (result.status === "ok") expect(result.replay.comparability).toBe("aligned");
+  });
+
   it("emits actionable tool diffs at the divergence point", () => {
     const base = [event(0, "tool.started", "tool_1", { toolName: "search", argsHash: "old", argsArtifactId: "artifact_old" })];
     const branch = [event(0, "tool.started", "tool_1", { toolName: "search", argsHash: "new", argsArtifactId: "artifact_new" })];
@@ -205,6 +256,46 @@ describe("@isplay/replay", () => {
       expect(result.events[0]?.data).not.toHaveProperty("result");
       expect(result.events[0]?.data).not.toHaveProperty("output");
       expect(result.events[0]?.data).toMatchObject({ resultArtifactId: "artifact_fixture", fixtureId: "fixture_1" });
+    }
+  });
+
+  it("uses explicit divergent tool request eventIndex when substituting fixture output", () => {
+    const args = { query: "customer" };
+    const base = [
+      event(0, "tool.started", "tool_1", { toolName: "search", args }),
+      event(1, "tool.finished", "tool_1", { toolName: "search", args, result: { tier: "gold" } }),
+      event(2, "model_call.finished", "model_1", { text: "done" })
+    ];
+    const branch = [
+      event(0, "tool.started", "tool_1", { toolName: "search", args }),
+      event(1, "tool.finished", "tool_1", { toolName: "search", args, result: { tier: "platinum" } }),
+      event(2, "model_call.finished", "model_1", { text: "done" })
+    ];
+    const result = new ReplayEngine().run({
+      replay: makeReplay(),
+      baseEvents: base,
+      branchEvents: branch,
+      divergentToolRequest: { toolName: "search", args, eventIndex: 0 },
+      fixtures: [
+        {
+          id: "fixture_1",
+          createdAt: nowIso(),
+          projectId: "project_1",
+          toolName: "search",
+          matcher: { argsHash: stableHash(args) },
+          outputArtifactId: "artifact_fixture",
+          outputHash: stableHash({ tier: "diamond" }),
+          provenance: "analyst_fixture",
+          sideEffectClass: "read",
+          metadata: {}
+        }
+      ],
+      policy: { model: "recorded-only", tool: "pause-for-fixture", drift: "continue_to_terminal", maxSteps: 100 }
+    });
+    expect(result.status).toBe("ok");
+    if (result.status === "ok") {
+      expect(result.events[1]?.metadata).toMatchObject({ fixtureId: "fixture_1", fixtureSubstitution: true });
+      expect(result.events[2]?.metadata.fixtureId).toBeUndefined();
     }
   });
 });

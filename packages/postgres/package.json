@@ -12,11 +12,9 @@
   },
   "dependencies": {
     "@isplay/core": "0.3.2",
+    "@types/pg": "^8.15.6",
     "drizzle-orm": "^0.45.1",
     "pg": "^8.16.3"
-  },
-  "devDependencies": {
-    "@types/pg": "^8.15.6"
   },
   "repository": {
     "type": "git",
@@ -38,6 +36,6 @@
   "description": "Postgres store, migrations, artifacts, jobs, and projections for isplay.",
   "license": "MIT",
   "engines": {
-    "node": ">=22.5.0"
+    "node": ">=22.22.0"
   }
 }

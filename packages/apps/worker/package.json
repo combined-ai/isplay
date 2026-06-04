@@ -11,9 +11,9 @@
     }
   },
   "dependencies": {
+    "@isplay/application": "0.3.2",
     "@isplay/core": "0.3.2",
     "@isplay/postgres": "0.3.2",
-    "@isplay/server": "0.3.2",
     "graphile-worker": "^0.16.6"
   },
   "repository": {
@@ -36,6 +36,6 @@
   "description": "Graphile Worker task handlers for durable isplay replay and experiment jobs.",
   "license": "MIT",
   "engines": {
-    "node": ">=22.5.0"
+    "node": ">=22.22.0"
   }
 }

@@ -5,10 +5,9 @@
     "outDir": "dist"
   },
   "references": [
+    { "path": "../../application" },
     { "path": "../../core" },
-    { "path": "../../postgres" },
-    { "path": "../../replay" },
-    { "path": "../../analysis" }
+    { "path": "../../postgres" }
   ],
   "include": ["src/**/*.ts"],
   "exclude": ["dist", "**/*.test.ts"]

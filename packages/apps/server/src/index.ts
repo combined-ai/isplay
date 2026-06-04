@@ -45,5 +45,3 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 }
 
 export { createApp };
-export { executeReplay } from "./runners/replay.js";
-export { runExperiment } from "./runners/experiments.js";

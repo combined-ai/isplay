@@ -7,7 +7,7 @@ export function PreFooter() {
         <div className="container-large">
           <div className="pre-footer_wrapper">
             <div className="pre-footer_logo-part">
-              <a href="/" aria-current="page" className="navbar_logo-link w-nav-brand w--current">
+              <a href="/" aria-current="page" aria-label="isplay home" className="navbar_logo-link w-nav-brand w--current">
                 <BrandLogo fade />
               </a>
             </div>

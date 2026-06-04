@@ -1,4 +1,4 @@
-import { Pool } from "pg";
+import { Pool, type PoolClient } from "pg";
 import { mkdir } from "node:fs/promises";
 import { createId, nowIso, toJsonValue, type JsonValue } from "@isplay/core";
 import { migrate } from "../../migrations.js";
@@ -128,12 +128,39 @@ export class StoreBase {
     status: string | undefined,
     data: unknown
   ): Promise<void> {
-    await this.pool.query(
+    await this.putProjectionOn(this.pool, id, projectId, runId, kind, status, data);
+  }
+
+  protected async putProjectionOn(
+    client: Pick<PoolClient, "query">,
+    id: string,
+    projectId: string,
+    runId: string | undefined,
+    kind: string,
+    status: string | undefined,
+    data: unknown
+  ): Promise<void> {
+    await client.query(
       `INSERT INTO projections (id, project_id, run_id, kind, status, data)
        VALUES ($1, $2, $3, $4, $5, $6)
        ON CONFLICT (id) DO UPDATE SET status = excluded.status, data = excluded.data, updated_at = now()`,
       [id, projectId, runId ?? null, kind, status ?? null, JSON.stringify(data)]
     );
+  }
+
+  protected async withTransaction<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      const result = await fn(client);
+      await client.query("COMMIT");
+      return result;
+    } catch (error) {
+      await client.query("ROLLBACK").catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   protected async getProjection<T>(id: string, parser: (value: unknown) => T): Promise<T | undefined> {

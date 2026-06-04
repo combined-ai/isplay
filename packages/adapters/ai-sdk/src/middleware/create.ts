@@ -7,6 +7,8 @@ import { inferModel, inferProvider } from "../inference/model-info.js";
 import type { AiSdkAdapterOptions } from "../types.js";
 import { recordToolProposals } from "./proposals.js";
 
+const MAX_STREAM_CHUNK_SNAPSHOTS = 100;
+
 export function createIsplayMiddleware(options: AiSdkAdapterOptions = {}): LanguageModelMiddleware {
   const client = resolveClient(options);
   return {
@@ -31,18 +33,8 @@ export function createIsplayMiddleware(options: AiSdkAdapterOptions = {}): Langu
       try {
         const result = await doStream();
         const payload = result as Record<string, unknown> & { stream?: ReadableStream<unknown> };
-        if (!payload.stream || typeof TransformStream === "undefined") return finishNonStream(client, modelCall, payload) as never;
-        const chunks: unknown[] = [];
-        const transform = new TransformStream<unknown, unknown>({
-          transform(chunk, controller) {
-            chunks.push(chunk);
-            controller.enqueue(chunk);
-          },
-          async flush() {
-            await finishNonStream(client, modelCall, { ...result, stream: "[stream]", chunks });
-          }
-        });
-        return { ...payload, stream: payload.stream.pipeThrough(transform) } as never;
+        if (!payload.stream || typeof ReadableStream === "undefined") return finishNonStream(client, modelCall, payload) as never;
+        return { ...payload, stream: captureStream(client, modelCall, payload, payload.stream) } as never;
       } catch (error) {
         await client.finishModelCall(modelCall, { error });
         throw error;
@@ -61,4 +53,58 @@ async function finishNonStream(client: IsplaySdkClient, modelCall: ModelCall, re
   await recordToolProposals(client, modelCall.id, result);
   await client.finishModelCall(modelCall, { output: result, usage: result.usage, logprobs: extractLogprobSignals(result) });
   return result;
+}
+
+function captureStream(client: IsplaySdkClient, modelCall: ModelCall, result: Record<string, unknown>, stream: ReadableStream<unknown>): ReadableStream<unknown> {
+  const reader = stream.getReader();
+  const chunks: unknown[] = [];
+  let chunkCount = 0;
+  let finished = false;
+
+  const finish = async (error?: unknown) => {
+    if (finished) return;
+    finished = true;
+    if (error !== undefined) {
+      await client.finishModelCall(modelCall, { error });
+      return;
+    }
+    await finishNonStream(client, modelCall, {
+      ...result,
+      stream: "[stream]",
+      chunks,
+      chunkCount,
+      truncatedChunkCount: Math.max(0, chunkCount - chunks.length)
+    });
+  };
+
+  return new ReadableStream<unknown>({
+    async pull(controller) {
+      try {
+        const next = await reader.read();
+        if (next.done) {
+          await finish();
+          controller.close();
+          return;
+        }
+        chunkCount += 1;
+        if (chunks.length < MAX_STREAM_CHUNK_SNAPSHOTS) chunks.push(next.value);
+        controller.enqueue(next.value);
+      } catch (error) {
+        await finish(error);
+        controller.error(error);
+      }
+    },
+    async cancel(reason) {
+      try {
+        await reader.cancel(reason);
+      } finally {
+        await finish(streamCancellationError(reason));
+      }
+    }
+  });
+}
+
+function streamCancellationError(reason: unknown): Error {
+  if (reason instanceof Error) return reason;
+  return new Error(reason === undefined ? "AI SDK stream cancelled." : `AI SDK stream cancelled: ${String(reason)}`);
 }

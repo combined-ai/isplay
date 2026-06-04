@@ -34,6 +34,6 @@
   "description": "Capture client and API convenience surface for isplay instrumentation.",
   "license": "MIT",
   "engines": {
-    "node": ">=22.5.0"
+    "node": ">=22.22.0"
   }
 }

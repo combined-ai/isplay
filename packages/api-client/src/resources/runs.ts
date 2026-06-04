@@ -15,7 +15,7 @@ import type {
   ToolProposal
 } from "@isplay/core";
 import { BaseResource } from "./base.js";
-import type { PageQuery } from "../paths.js";
+import type { PageQuery, PatchRunInput } from "../paths.js";
 
 export class RunResource extends BaseResource {
   async create(input: CreateRunInput): Promise<Run> {
@@ -32,7 +32,7 @@ export class RunResource extends BaseResource {
     return this.transport.unwrap(await this.transport.client.GET("/v1/runs", options), "GET", "/v1/runs");
   }
 
-  async patch(id: string, input: Partial<Run>): Promise<Run> {
+  async patch(id: string, input: PatchRunInput): Promise<Run> {
     return this.transport.unwrap(await this.transport.client.PATCH("/v1/runs/{id}", { params: { path: { id } }, body: input }), "PATCH", "/v1/runs/{id}");
   }
 

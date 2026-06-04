@@ -52,6 +52,7 @@ import type {
   ExperimentRunResponse,
   HypothesisBatchCreateResponse,
   PageQuery,
+  PatchRunInput,
   TrialMatrixRow
 } from "./paths.js";
 
@@ -78,7 +79,13 @@ export class IsplayApiClient {
   async health(): Promise<{ ok: boolean }> {
     return this.transport.unwrap(await this.transport.client.GET("/health"), "GET", "/health");
   }
-  getJobEvents(id: string): Promise<string> { return this.transport.text(`/v1/jobs/${encodeURIComponent(id)}/events`); }
+  async getJobEvents(id: string): Promise<string> {
+    return this.transport.unwrap(
+      await this.transport.client.GET("/v1/jobs/{id}/events", { params: { path: { id } }, parseAs: "text" }),
+      "GET",
+      "/v1/jobs/{id}/events"
+    );
+  }
 
   createProject(input: CreateProjectInput): Promise<Project> { return this.projects.create(input); }
   getProject(id: string): Promise<Project> { return this.projects.get(id); }
@@ -86,7 +93,7 @@ export class IsplayApiClient {
   createRun(input: CreateRunInput): Promise<Run> { return this.runs.create(input); }
   getRun(id: string): Promise<Run> { return this.runs.get(id); }
   listRuns(projectId?: string, page?: PageQuery): Promise<Run[]> { return this.runs.list(projectId, page); }
-  patchRun(id: string, input: Partial<Run>): Promise<Run> { return this.runs.patch(id, input); }
+  patchRun(id: string, input: PatchRunInput): Promise<Run> { return this.runs.patch(id, input); }
   appendEvents(runId: string, events: EventRecord[]): Promise<{ inserted: number }> { return this.runs.appendEvents(runId, events); }
   getEvents(runId: string, page?: PageQuery): Promise<EventRecord[]> { return this.runs.events(runId, page); }
   recordModelCall(runId: string, input: ModelCall): Promise<ModelCall> { return this.runs.recordModelCall(runId, input); }

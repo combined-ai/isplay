@@ -81,7 +81,7 @@ export function Platform() {
             <div id="w-node-f402960b-007b-71db-f444-aae7021efd02-0d3ebacd" data-w-id="f402960b-007b-71db-f444-aae7021efd02" className="enterprise_grid-col">
               <div className="enterprise_left-canvas">
                 <div data-video="playpause" className="enterprise_-left-cover-video">
-                  <video muted loop playsInline src={assets.videos.particle} poster={assets.videos.particlePoster} preload="metadata" className="cover-video__video" />
+                  <video muted loop playsInline data-src={assets.videos.particle} poster={assets.videos.particlePoster} preload="none" className="cover-video__video" />
                 </div>
                 <div className="enterprice_left-grad-el" />
                 <div className="enterprice_top-grad-el" />
@@ -89,7 +89,7 @@ export function Platform() {
               </div>
               <div id="threads-container" className="enterprise_right-canvas w-node-_0341fd63-da0d-d3f7-f0bf-c949fd6057f7-0d3ebacd">
                 <div data-video="playpause" className="enterprise_rgiht-cover-video">
-                  <video muted loop playsInline src={assets.videos.wave} poster={assets.videos.wavePoster} preload="metadata" className="cover-video__video" />
+                  <video muted loop playsInline data-src={assets.videos.wave} poster={assets.videos.wavePoster} preload="none" className="cover-video__video" />
                 </div>
                 <div className="enterprice_right-grad-el" />
                 <div className="enterprice_top-grad-el" />

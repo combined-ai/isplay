@@ -6,6 +6,7 @@ import type {
   ExperimentRunResponse,
   HypothesisBatchCreateResponse,
   PageQuery,
+  PatchRunInput,
   TrialMatrixRow
 } from "@isplay/api-client";
 import type {
@@ -40,7 +41,7 @@ export class SdkSurfaceClient extends ModelToolCaptureClient {
   createRun(input: Omit<CreateRunInput, "projectId"> & { projectId?: string }): Promise<Run> { return this.api.createRun({ ...input, projectId: input.projectId ?? this.projectId }); }
   getRun(id: string) { return this.api.getRun(id); }
   listRuns(projectId = this.projectId, page?: PageQuery) { return this.api.listRuns(projectId, page); }
-  patchRun(id: string, input: Partial<Run>) { return this.api.patchRun(id, input); }
+  patchRun(id: string, input: PatchRunInput) { return this.api.patchRun(id, input); }
   appendEvents(runId: string, events: EventRecord[]) { return this.api.appendEvents(runId, events); }
   getEvents(runId: string, page?: PageQuery) { return this.api.getEvents(runId, page); }
   storeModelCall(runId: string, input: ModelCall) { return this.api.recordModelCall(runId, input); }

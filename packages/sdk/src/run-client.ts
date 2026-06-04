@@ -15,6 +15,7 @@ import { IsplaySdkBase } from "./base.js";
 
 export class RunCaptureClient extends IsplaySdkBase {
   private readonly runSequences = new Map<string, number>();
+  private readonly runLocks = new Map<string, Promise<void>>();
 
   async withRun<T>(input: Omit<CreateRunInput, "projectId">, fn: (run: Run) => Promise<T> | T): Promise<T> {
     const run = await this.api.createRun({ ...input, projectId: this.projectId });
@@ -33,19 +34,42 @@ export class RunCaptureClient extends IsplaySdkBase {
   }
 
   async withRunContext<T>(input: { runId: string; projectId?: string }, fn: () => Promise<T> | T): Promise<T> {
-    const projectId = input.projectId ?? this.projectId;
-    const context = {
-      runId: input.runId,
-      projectId,
-      seq: this.runSequences.get(input.runId) ?? 1
-    };
-    return runStorage.run(context, async () => {
-      try {
-        return await fn();
-      } finally {
-        this.runSequences.set(input.runId, context.seq);
-      }
+    const activeContext = runStorage.getStore();
+    if (activeContext?.runId === input.runId) return fn();
+
+    return this.withRunLock(input.runId, async () => {
+      const projectId = input.projectId ?? this.projectId;
+      const context = {
+        runId: input.runId,
+        projectId,
+        seq: this.runSequences.get(input.runId) ?? 1
+      };
+      return runStorage.run(context, async () => {
+        try {
+          return await fn();
+        } finally {
+          this.runSequences.set(input.runId, context.seq);
+        }
+      });
     });
+  }
+
+  private async withRunLock<T>(runId: string, fn: () => Promise<T> | T): Promise<T> {
+    const previous = this.runLocks.get(runId) ?? Promise.resolve();
+    let release!: () => void;
+    const current = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const next = previous.catch(() => undefined).then(() => current);
+    this.runLocks.set(runId, next);
+
+    await previous.catch(() => undefined);
+    try {
+      return await fn();
+    } finally {
+      release();
+      if (this.runLocks.get(runId) === next) this.runLocks.delete(runId);
+    }
   }
 
   async recordEvent(type: string, data: unknown, refId?: string): Promise<EventRecord> {

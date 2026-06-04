@@ -1,15 +1,15 @@
 import { createRoute, z, type OpenAPIHono } from "@hono/zod-openapi";
-import { AnalysisRunSchema, CreateAnalysisRunSchema } from "@isplay/core";
+import { createPersistedAnalysis } from "@isplay/application";
+import { CreateAnalysisRunSchema } from "@isplay/core";
 import { ErrorResponseSchema, jsonBody, jsonContent, notFound, registerRoute, type AppBindings } from "../http.js";
-import { createPersistedAnalysis } from "../runners/replay.js";
-import { AnalysisRunDoc, CreateAnalysisRunDoc } from "../openapi-schemas.js";
+import { AnalysisRunDoc, CreateAnalysisRunDoc, EvidenceEdgeDoc, EvidenceNodeDoc, MetricDoc } from "../openapi-schemas.js";
 
 const IdParamsSchema = z.object({ id: z.string() });
 const AnalysisOutputSchema = z.object({
   analysisRun: AnalysisRunDoc,
-  evidenceNodes: z.array(z.any()),
-  evidenceEdges: z.array(z.any()),
-  scores: z.array(z.any())
+  evidenceNodes: z.array(EvidenceNodeDoc),
+  evidenceEdges: z.array(EvidenceEdgeDoc),
+  scores: z.array(MetricDoc)
 });
 
 export function registerAnalysisRoutes(app: OpenAPIHono<AppBindings>): void {

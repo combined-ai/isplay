@@ -83,4 +83,28 @@ describe("@isplay/server OpenAPI", () => {
     expect(response.status).toBe(200);
     expect(patch).not.toHaveProperty("metadata");
   });
+
+  it("does not fall back to base run events for empty replay events", async () => {
+    let fetchedBaseEvents = false;
+    const store = {
+      getReplay: async () => ({
+        id: "replay_1",
+        projectId: "project_1",
+        baseRunId: "run_1",
+        status: "queued",
+        metadata: {}
+      }),
+      listReplayEvents: async () => [],
+      getEvents: async () => {
+        fetchedBaseEvents = true;
+        return [];
+      }
+    } as unknown as IsplayStore;
+
+    const response = await createApp(store).request("/v1/replays/replay_1/events");
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual([]);
+    expect(fetchedBaseEvents).toBe(false);
+  });
 });

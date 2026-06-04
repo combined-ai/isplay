@@ -6,6 +6,7 @@
     { "path": "./packages/postgres" },
     { "path": "./packages/replay" },
     { "path": "./packages/analysis" },
+    { "path": "./packages/application" },
     { "path": "./packages/apps/server" },
     { "path": "./packages/apps/worker" },
     { "path": "./packages/sdk" },

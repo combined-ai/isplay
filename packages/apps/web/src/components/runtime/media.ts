@@ -1,4 +1,6 @@
 export function initVideoScrollTriggers() {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return () => {};
+
   const targets = Array.from(document.querySelectorAll<HTMLElement>('[data-video="playpause"]'));
   if (!targets.length) return () => {};
 

@@ -24,11 +24,7 @@ jobs:
           cache: npm
 
       - run: npm ci
-      - run: npm run build:clean
-      - run: npm test
-      - run: npm run build:web
-      - run: node scripts/package-smoke.mjs
-      - run: npm audit --omit=dev --audit-level=moderate
+      - run: npm run ci
 
   local-e2e:
     runs-on: ubuntu-latest

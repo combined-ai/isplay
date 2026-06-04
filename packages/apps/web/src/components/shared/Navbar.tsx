@@ -15,7 +15,7 @@ export function Navbar() {
       data-duration="400"
     >
       <div className="navbar_container">
-        <a href="/" aria-current="page" className="navbar_logo-link w-nav-brand w--current">
+        <a href="/" aria-current="page" aria-label="isplay home" className="navbar_logo-link w-nav-brand w--current">
           <BrandLogo />
         </a>
         <div className="navbar_menu-group">

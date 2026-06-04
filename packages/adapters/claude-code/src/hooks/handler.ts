@@ -45,25 +45,46 @@ export class ClaudeCodeHookHandler {
     const execution = await this.options.client.startToolExecution({ proposalId: proposal.id, toolCallId: proposal.toolCallId, toolName, args: input.tool_input, sideEffectClass: sideEffectFromToolName(toolName) });
     this.executions.set(proposal.toolCallId, execution);
     const decision = await this.fixtures.resolveToolCall({ runtime: "claude-code", runKey: this.options.keyOf(input), toolName, toolCallId: proposal.toolCallId, args: toJsonValue(input.tool_input), sideEffectClass: execution.sideEffectClass });
-    if (decision.action === "block") return preToolDecision("deny", decision.reason);
-    if (decision.action === "require_fixture") return preToolDecision("defer", decision.reason);
-    if (decision.action === "inject" && this.options.replacementMode !== "post_tool_context") return preToolDecision("defer", "isplay fixture is ready; resume through an isplay-owned MCP/proxy tool to avoid side effects.");
+    if (decision.action === "block") {
+      await this.blockExecution(proposal.toolCallId, execution, decision.reason, decision.action);
+      return preToolDecision("deny", decision.reason);
+    }
+    if (decision.action === "require_fixture") {
+      await this.blockExecution(proposal.toolCallId, execution, decision.reason, decision.action);
+      return preToolDecision("defer", decision.reason);
+    }
+    if (decision.action === "inject" && this.options.replacementMode !== "post_tool_context") {
+      const reason = "isplay fixture is ready; resume through an isplay-owned MCP/proxy tool to avoid side effects.";
+      await this.blockExecution(proposal.toolCallId, execution, reason, "inject_unsupported");
+      return preToolDecision("defer", reason);
+    }
     return {};
   }
 
   private async onPostTool(input: ClaudeCodeHookInput): Promise<ClaudeHookOutput> {
     const execution = input.tool_use_id ? this.executions.get(input.tool_use_id) : undefined;
-    if (execution) await this.options.client.finishToolExecution(execution, { output: input.tool_response });
     const decision = await this.fixtures.resolveToolCall({ runtime: "claude-code", runKey: this.options.keyOf(input), toolName: input.tool_name ?? "unknown", toolCallId: input.tool_use_id, args: toJsonValue(input.tool_input), sideEffectClass: sideEffectFromToolName(input.tool_name ?? "") });
     if (decision.action === "inject" && this.options.replacementMode === "post_tool_context") {
+      if (execution) await this.finishExecution(input.tool_use_id, execution, { fixtureId: decision.fixture.id, fixtureProvenance: decision.fixture.provenance, output: decision.output });
       return { hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: JSON.stringify(decision.output) } };
     }
+    if (execution) await this.finishExecution(input.tool_use_id, execution, input.tool_response);
     return {};
   }
 
   private async onStop(input: ClaudeCodeHookInput): Promise<ClaudeHookOutput> {
     if (input.last_assistant_message) await this.options.client.annotateContext({ kind: "assistant_message", path: "claude.last_assistant_message", value: input.last_assistant_message, provenance: "claude.Stop" });
     return {};
+  }
+
+  private async finishExecution(toolCallId: string | undefined, execution: Awaited<ReturnType<IsplaySdk["startToolExecution"]>>, output: unknown): Promise<void> {
+    await this.options.client.finishToolExecution(execution, { output });
+    if (toolCallId) this.executions.delete(toolCallId);
+  }
+
+  private async blockExecution(toolCallId: string | undefined, execution: Awaited<ReturnType<IsplaySdk["startToolExecution"]>>, reason: string, fixtureDecision: string): Promise<void> {
+    await this.options.client.blockToolExecution(execution, reason, { fixtureDecision });
+    if (toolCallId) this.executions.delete(toolCallId);
   }
 }
 

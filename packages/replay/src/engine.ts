@@ -19,7 +19,7 @@ export type ReplayEngineInput = {
   baseEvents: EventRecord[];
   branchEvents?: EventRecord[];
   fixtures?: ToolFixture[];
-  divergentToolRequest?: Omit<ToolRequest, "projectId" | "replayId" | "branchId">;
+  divergentToolRequest?: DivergentToolRequest;
   policy?: ReplayPolicy;
 };
 
@@ -54,7 +54,7 @@ export class ReplayEngine {
 
     const branchEvents = input.branchEvents ?? input.baseEvents;
     if (branchEvents.length > policy.maxSteps) return this.error(input.replay, `Replay exceeded maxSteps policy: ${policy.maxSteps}`);
-    const toolRequest = input.divergentToolRequest ? { ...input.divergentToolRequest, eventIndex: undefined } : findDivergentToolRequest(input.baseEvents, branchEvents);
+    const toolRequest = input.divergentToolRequest ?? findDivergentToolRequest(input.baseEvents, branchEvents);
     if (toolRequest) {
       if (policy.tool === "blocked") return this.error(input.replay, `Tool policy blocked divergent tool call: ${toolRequest.toolName}`);
       const request = {
@@ -92,7 +92,8 @@ export class ReplayEngine {
       baseEvents: input.baseEvents,
       branchEvents
     });
-    const firstDivergence = diffs.find((diff) => diff.kind === "trace")?.patch as { firstDivergenceIndex?: number } | undefined;
+    const traceDiff = diffs.find((diff) => diff.kind === "trace");
+    const firstDivergence = traceDiff?.patch as { firstDivergenceIndex?: number } | undefined;
     return {
       status: "ok",
       replay: ReplaySchema.parse({
@@ -102,7 +103,7 @@ export class ReplayEngine {
           firstDivergence?.firstDivergenceIndex !== undefined && firstDivergence.firstDivergenceIndex >= 0
             ? branchEvents[firstDivergence.firstDivergenceIndex]?.id
             : undefined,
-        comparability: firstDivergence?.firstDivergenceIndex === -1 ? comparability : "diverged_but_comparable",
+        comparability: firstDivergence?.firstDivergenceIndex === -1 ? comparability : traceDiff?.comparability,
         metadata: { ...input.replay.metadata, replayMode: "recorded_transform" }
       }),
       events: branchEvents,
@@ -118,6 +119,7 @@ export class ReplayEngine {
 
 function unsupportedLivePolicy(policy: ReplayPolicy): string | undefined {
   if (policy.model === "pinned-live" || policy.model === "compatible-live") return `Model policy ${policy.model} requires an explicit model executor.`;
+  if (policy.model === "provider-fixture") return "Model policy provider-fixture is not implemented by the replay engine.";
   if (policy.tool === "live-readonly" || policy.tool === "live-explicit") return `Tool policy ${policy.tool} requires an explicit tool executor.`;
   return undefined;
 }

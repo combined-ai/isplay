@@ -1,4 +1,4 @@
-import createClient from "openapi-fetch/src/index.js";
+import createClient from "openapi-fetch";
 import { apiErrorOptions, IsplayApiError, summarizeError } from "./errors.js";
 import type { ApiClientOptions } from "./options.js";
 import type { IsplayPaths } from "./paths.js";

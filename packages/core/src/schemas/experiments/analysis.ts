@@ -7,6 +7,7 @@ export const AnalysisRunSchema = BaseRecordSchema.extend({
   projectId: z.string(),
   baseRunId: z.string(),
   experimentId: z.string().optional(),
+  replayId: z.string().optional(),
   validityLabels: z.array(ValidityLabelSchema),
   summary: z.string().optional(),
   metadata: MetadataSchema

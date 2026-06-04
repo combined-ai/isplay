@@ -5,8 +5,9 @@ import { createClaudeCodeSettings } from "../settings/create.js";
 
 describe("Claude Code adapter", () => {
   it("defers missing fixture tool calls before execution", async () => {
+    const events: unknown[] = [];
     const adapter = createClaudeCodeAdapter({
-      client: fakeClient([]),
+      client: fakeClient(events),
       fixtureGateway: { resolveToolCall: () => ({ action: "require_fixture", reason: "Need analyst fixture." }) }
     });
 
@@ -17,6 +18,7 @@ describe("Claude Code adapter", () => {
       permissionDecision: "defer",
       permissionDecisionReason: "Need analyst fixture."
     });
+    expect(events).toContainEqual(expect.objectContaining({ type: "blockToolExecution", reason: "Need analyst fixture." }));
   });
 
   it("captures stream-json result messages", async () => {
@@ -44,6 +46,7 @@ function fakeClient(events: unknown[]): IsplaySdk {
     recordToolProposal: async (input: { toolCallId?: string }) => (events.push({ type: "recordToolProposal", input }), { id: "proposal_1", toolCallId: input.toolCallId ?? "t1" }),
     startToolExecution: async (input: { sideEffectClass?: string }) => (events.push({ type: "startToolExecution", input }), { id: "tool_1", sideEffectClass: input.sideEffectClass ?? "unknown" }),
     finishToolExecution: async (_execution: unknown, input: unknown) => events.push({ type: "finishToolExecution", input }),
+    blockToolExecution: async (_execution: unknown, reason: string, metadata: unknown) => events.push({ type: "blockToolExecution", reason, metadata }),
     annotateContext: async (input: unknown) => events.push({ type: "annotateContext", input }),
     recordEvent: async (type: string, data: unknown) => events.push({ type: "recordEvent", eventType: type, data })
   };

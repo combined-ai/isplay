@@ -40,9 +40,21 @@ export function applyInterventions(
         ];
         continue;
       }
+      const patchResult = patchValue(events[index].data, intervention.patch, intervention.operations, intervention.target.jsonPointer);
+      if (!patchResult.ok) {
+        events = [
+          ...events,
+          interventionEvent(intervention, events.at(-1)?.seq ?? -1, replayId, runId, {
+            targetStatus: "patch_failed",
+            targetEventId: events[index].id,
+            patchError: patchResult.error
+          })
+        ];
+        continue;
+      }
       events[index] = EventSchema.parse({
         ...events[index],
-        data: patchValue(events[index].data, intervention.patch, intervention.operations, intervention.target.jsonPointer),
+        data: patchResult.value,
         metadata: { ...events[index].metadata, interventionId: intervention.id, interventionKind: intervention.kind, targetStatus: "applied" }
       });
     } else {
@@ -75,17 +87,22 @@ function eventMatchesTarget(event: EventRecord, target: InterventionTarget): boo
   return true;
 }
 
-function patchValue(value: JsonValue, patch: JsonValue | undefined, operations: JsonValue[] = [], jsonPointer?: string): JsonValue {
+type PatchResult = { ok: true; value: JsonValue } | { ok: false; error: string };
+
+function patchValue(value: JsonValue, patch: JsonValue | undefined, operations: JsonValue[] = [], jsonPointer?: string): PatchResult {
   const patchOperations = operations.length > 0 ? operations : hasOperations(patch) ? patch.operations : [];
   if (patchOperations.length > 0) return applyOperations(value, prefixOperations(patchOperations, jsonPointer));
-  if (!patch) return value;
-  if (jsonPointer) return replacePointer(value, jsonPointer, patchValue(pointerValue(value, jsonPointer) ?? null, patch));
-  if (isObject(value) && isObject(patch)) return normalizePatchedToolArgs({ ...value, ...patch }, patch);
-  return patch;
+  if (!patch) return { ok: true, value };
+  if (jsonPointer) {
+    const nested = patchValue(pointerValue(value, jsonPointer) ?? null, patch);
+    return nested.ok ? replacePointer(value, jsonPointer, nested.value) : nested;
+  }
+  if (isObject(value) && isObject(patch)) return { ok: true, value: normalizePatchedToolArgs({ ...value, ...patch }, patch) };
+  return { ok: true, value: patch };
 }
 
-function applyOperations(value: JsonValue, operations: JsonValue): JsonValue {
-  if (!Array.isArray(operations)) return value;
+function applyOperations(value: JsonValue, operations: JsonValue): PatchResult {
+  if (!Array.isArray(operations)) return { ok: true, value };
   const document = JSON.parse(JSON.stringify(value ?? {})) as JsonValue;
   try {
     const normalized = operations.filter(isPatchOperation).map((operation) => {
@@ -93,9 +110,9 @@ function applyOperations(value: JsonValue, operations: JsonValue): JsonValue {
       if (operation.op === "mask_span") return spanOperation(document, operation);
       return operation;
     });
-    return jsonPatch.applyPatch(document as never, normalized as never, false, false).newDocument as JsonValue;
-  } catch {
-    return isObject(value) ? { ...value, isplayPatch: { operations } } : { original: value, isplayPatch: { operations } };
+    return { ok: true, value: jsonPatch.applyPatch(document as never, normalized as never, true, false).newDocument as JsonValue };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : String(error) };
   }
 }
 
@@ -181,13 +198,13 @@ function prefixOperations(operations: JsonValue[], jsonPointer: string | undefin
   });
 }
 
-function replacePointer(document: JsonValue, pointer: string, value: JsonValue): JsonValue {
+function replacePointer(document: JsonValue, pointer: string, value: JsonValue): PatchResult {
   const copy = JSON.parse(JSON.stringify(document ?? {})) as JsonValue;
   const op = pointerValue(copy, pointer) === undefined ? "add" : "replace";
   try {
-    return jsonPatch.applyPatch(copy as never, [{ op, path: pointer, value }] as never, false, false).newDocument as JsonValue;
-  } catch {
-    return isObject(document) ? { ...document, isplayPatch: { pointer, value } } : { original: document, isplayPatch: { pointer, value } };
+    return { ok: true, value: jsonPatch.applyPatch(copy as never, [{ op, path: pointer, value }] as never, true, false).newDocument as JsonValue };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : String(error) };
   }
 }
 

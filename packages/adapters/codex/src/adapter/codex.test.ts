@@ -18,8 +18,9 @@ describe("Codex adapter", () => {
   });
 
   it("uses PostToolUse replacement for fixture-dependent built-in outputs", async () => {
+    const events: unknown[] = [];
     const adapter = createCodexAdapter({
-      client: fakeClient([]),
+      client: fakeClient(events),
       postToolReplacement: true,
       fixtureGateway: { resolveToolCall: () => ({ action: "inject", fixture: fixture(), output: { ok: true } }) }
     });
@@ -29,6 +30,20 @@ describe("Codex adapter", () => {
 
     expect(output.continue).toBe(false);
     expect(output.hookSpecificOutput?.hookEventName).toBe("PostToolUse");
+    expect(events).toContainEqual(expect.objectContaining({ type: "finishToolExecution", input: { output: { fixtureId: "fixture_1", fixtureProvenance: "analyst_fixture", output: { ok: true } } } }));
+  });
+
+  it("terminates denied pre-tool executions", async () => {
+    const events: unknown[] = [];
+    const adapter = createCodexAdapter({
+      client: fakeClient(events),
+      fixtureGateway: { resolveToolCall: () => ({ action: "block", reason: "Side effect blocked." }) }
+    });
+
+    const output = await adapter.handleHook({ hook_event_name: "PreToolUse", session_id: "s1", tool_name: "Bash", tool_use_id: "t1", tool_input: { command: "rm -rf tmp" } });
+
+    expect(output).toMatchObject({ decision: "block", reason: "Side effect blocked." });
+    expect(events).toContainEqual(expect.objectContaining({ type: "blockToolExecution", reason: "Side effect blocked." }));
   });
 
   it("generates installable plugin descriptors", () => {
@@ -46,6 +61,7 @@ function fakeClient(events: unknown[]): IsplaySdk {
     recordToolProposal: async (input: { toolCallId?: string }) => (events.push({ type: "recordToolProposal", input }), { id: "proposal_1", toolCallId: input.toolCallId ?? "item_1" }),
     startToolExecution: async (input: { sideEffectClass?: string }) => (events.push({ type: "startToolExecution", input }), { id: "tool_1", sideEffectClass: input.sideEffectClass ?? "unknown" }),
     finishToolExecution: async (_execution: unknown, input: unknown) => events.push({ type: "finishToolExecution", input }),
+    blockToolExecution: async (_execution: unknown, reason: string, metadata: unknown) => events.push({ type: "blockToolExecution", reason, metadata }),
     recordEvent: async (type: string, data: unknown) => events.push({ type: "recordEvent", eventType: type, data }),
     annotateContext: async (input: unknown) => events.push({ type: "annotateContext", input })
   };

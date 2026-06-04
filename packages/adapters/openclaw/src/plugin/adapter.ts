@@ -29,7 +29,11 @@ export function createOpenClawAdapter(options: OpenClawAdapterOptions = {}) {
       if (name === "before_tool_call") return capture(event, () => onBeforeTool(event));
       if (name === "after_tool_call") return capture(event, () => onAfterTool(event));
       if (name === "before_prompt_build") return capture(event, async () => options.contextProvider?.(event));
-      if (name === "agent_end" || name === "session_end") await runs.finish(runKey(event), event.error ? "error" : "ok");
+      if (name === "agent_end" || name === "session_end") {
+        await capture(event, () => client.recordEvent(`openclaw.${name}`, event, `openclaw:${name}`));
+        await runs.finish(runKey(event), event.error ? "error" : "ok");
+        return {};
+      }
       return capture(event, () => client.recordEvent(`openclaw.${name}`, event, `openclaw:${name}`));
     }
   };
@@ -55,17 +59,36 @@ export function createOpenClawAdapter(options: OpenClawAdapterOptions = {}) {
     const execution = await client.startToolExecution({ proposalId: proposal.id, toolCallId: proposal.toolCallId, toolName, args: event.params, sideEffectClass: sideEffectFromToolName(toolName) });
     toolExecutions.set(proposal.toolCallId, execution);
     const decision = await fixtureGateway.resolveToolCall({ runtime: "openclaw", runKey: runKey(event), toolName, toolCallId: proposal.toolCallId, args: toJsonValue(event.params), sideEffectClass: execution.sideEffectClass });
-    if (decision.action === "inject" && options.toolResultMode === "native_synthetic") return { result: decision.output, skipExecution: true, provenance: "isplay_fixture" };
-    if (decision.action === "require_fixture") return { block: true, reason: decision.reason };
-    if (decision.action === "block") return { block: true, reason: decision.reason };
+    if (decision.action === "inject" && options.toolResultMode === "native_synthetic") {
+      await finishTool(proposal.toolCallId, execution, { fixtureId: decision.fixture.id, fixtureProvenance: decision.fixture.provenance, output: decision.output });
+      return { result: decision.output, skipExecution: true, provenance: "isplay_fixture" };
+    }
+    if (decision.action === "require_fixture") {
+      await blockTool(proposal.toolCallId, execution, decision.reason, decision.action);
+      return { block: true, reason: decision.reason };
+    }
+    if (decision.action === "block") {
+      await blockTool(proposal.toolCallId, execution, decision.reason, decision.action);
+      return { block: true, reason: decision.reason };
+    }
     return {};
   }
 
   async function onAfterTool(event: OpenClawHookEvent) {
     const key = String(event.toolCallId ?? "");
     const execution = toolExecutions.get(key);
-    if (execution) await client.finishToolExecution(execution, { output: event.result, error: event.error });
+    if (execution) await finishTool(key, execution, event.result, event.error);
     return client.recordEvent("openclaw.after_tool_call", event, execution?.id);
+  }
+
+  async function finishTool(toolCallId: string, execution: Awaited<ReturnType<typeof client.startToolExecution>>, output: unknown, error?: unknown) {
+    await client.finishToolExecution(execution, { output, error });
+    toolExecutions.delete(toolCallId);
+  }
+
+  async function blockTool(toolCallId: string, execution: Awaited<ReturnType<typeof client.startToolExecution>>, reason: string, fixtureDecision: string) {
+    await client.blockToolExecution(execution, reason, { fixtureDecision });
+    toolExecutions.delete(toolCallId);
   }
 }
 
