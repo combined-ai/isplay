@@ -337,16 +337,47 @@ html {
     transform: translateY(50%);
   }
 
-  html.wf-ix3-revealed :is(
+  :is(
     [data-fade-in="opacity"],
     [data-fade-in="move"],
     [data-fade-in-stagger="word"],
     [data-fade-in-stagger="line"]
-  ),
-  html.wf-ix3-revealed :is([data-fade-in-stagger="word"], [data-fade-in-stagger="line"]) * {
+  ).is-reveal-pending:not(.is-reveal-visible) {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    will-change: opacity, transform;
+  }
+
+  [data-fade-in="move"].is-reveal-pending:not(.is-reveal-visible) {
+    transform: translate3d(0, 1.75rem, 0) !important;
+  }
+
+  :is(
+    [data-fade-in="opacity"],
+    [data-fade-in="move"],
+    [data-fade-in-stagger="word"],
+    [data-fade-in-stagger="line"]
+  ).is-reveal-visible,
+  :is([data-fade-in-stagger="word"], [data-fade-in-stagger="line"]).is-reveal-visible * {
     opacity: 1 !important;
     transform: none !important;
     visibility: visible !important;
+    transition:
+      opacity 420ms ease,
+      transform 560ms cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: auto;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :is(
+      [data-fade-in="opacity"],
+      [data-fade-in="move"],
+      [data-fade-in-stagger="word"],
+      [data-fade-in-stagger="line"]
+    ).is-reveal-visible,
+    :is([data-fade-in-stagger="word"], [data-fade-in-stagger="line"]).is-reveal-visible * {
+      transition: none !important;
+    }
   }
 
   .section_hero {
