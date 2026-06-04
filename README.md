@@ -13,6 +13,7 @@
 
 <p align="center">
   <a href="https://www.npmjs.com/package/isplay"><img alt="npm version" src="https://img.shields.io/npm/v/isplay?color=0f766e"></a>
+  <a href="https://www.npmjs.com/package/isplay"><img alt="npm downloads" src="https://img.shields.io/npm/dm/isplay?color=0f766e"></a>
   <a href="https://github.com/combined-ai/isplay/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/combined-ai/isplay/actions/workflows/ci.yml/badge.svg"></a>
   <a href="https://github.com/combined-ai/isplay/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/combined-ai/isplay?style=flat&logo=github"></a>
   <a href="./LICENSE"><img alt="MIT license" src="https://img.shields.io/github/license/combined-ai/isplay"></a>
@@ -57,6 +58,17 @@ npx isplay projects create --name "Agent Lab"
 - [`@isplay/server`](./packages/apps/server), [`@isplay/replay`](./packages/replay), [`@isplay/analysis`](./packages/analysis): API, replay engine, and evidence-bounded analysis.
 
 For the full package map, CLI reference, and integration guides, use the [docs](https://isplay.dev/docs).
+
+## Star History
+
+<p align="center">
+  <a href="https://www.star-history.com/#combined-ai/isplay&Date">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=combined-ai/isplay&type=Date&theme=dark">
+      <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=combined-ai/isplay&type=Date" width="720">
+    </picture>
+  </a>
+</p>
 
 ## License
 
