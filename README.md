@@ -20,18 +20,18 @@
 </p>
 
 <p align="center">
-  <a href="https://isplay.dev/docs">Docs</a>
+  <a href="https://isplay.dev">Website</a>
   ·
-  <a href="#quick-start">Quick Start</a>
+  <a href="https://isplay.dev/docs">Docs</a>
   ·
   <a href="https://github.com/combined-ai/isplay">GitHub</a>
 </p>
 
 ## Why isplay
 
-Logs show what happened. isplay keeps the decision evidence behind it: context, prompts, model and tool calls, artifacts, checkpoints, branches, replays, experiments, effects, and validity labels.
+isplay is infrastructure for debugging agent decisions. It captures the evidence behind every turn: context, prompts, model and tool calls, artifacts, checkpoints, branches, replays, experiments, effects, and validity labels.
 
-Use it when "what probably failed?" needs to become "what changed when we replayed the decision?"
+Use it when agent debugging needs to move past logs and vibes into replayable, testable decision forensics.
 
 ## Quick Start
 
