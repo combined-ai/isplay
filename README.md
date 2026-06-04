@@ -59,17 +59,6 @@ npx isplay projects create --name "Agent Lab"
 
 For the full package map, CLI reference, and integration guides, use the [docs](https://isplay.dev/docs).
 
-## Star History
-
-<p align="center">
-  <a href="https://www.star-history.com/#combined-ai/isplay&Date">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=combined-ai/isplay&type=Date&theme=dark">
-      <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=combined-ai/isplay&type=Date" width="720">
-    </picture>
-  </a>
-</p>
-
 ## License
 
 MIT
