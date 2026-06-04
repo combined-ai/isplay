@@ -1,5 +1,5 @@
 import { execFile, spawn } from "node:child_process";
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
@@ -9,6 +9,7 @@ import { promisify } from "node:util";
 const execFileAsync = promisify(execFile);
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const cliPath = path.join(root, "packages/apps/cli/dist/index.js");
+const cliPackagePath = path.join(root, "packages/apps/cli/package.json");
 
 const steps = [];
 let tempDir;
@@ -40,7 +41,8 @@ try {
   step("local API and worker start");
 
   const cliVersion = (await cli(["--version"], { ISPLAY_API_URL: baseUrl })).stdout.trim();
-  assert(cliVersion === "0.3.0", `CLI version should be 0.3.0, got ${cliVersion}`);
+  const expectedCliVersion = JSON.parse(await readFile(cliPackagePath, "utf8")).version;
+  assert(cliVersion === expectedCliVersion, `CLI version should be ${expectedCliVersion}, got ${cliVersion}`);
   step("CLI version is current");
 
   const invalid = await cli(["--json", "experiments", "create", JSON.stringify({ projectId: "project_bad" })], { ISPLAY_API_URL: baseUrl }, { allowFailure: true });
