@@ -5,10 +5,10 @@
   </picture>
 </p>
 
-<h3 align="center">Understand why AI agents do what they do.</h3>
+<h3 align="center">Replay infrastructure for agent decisions.</h3>
 
 <p align="center">
-  Capture the evidence behind a run, branch from checkpoints, and give human or AI analysts the replays, diffs, metrics, fixtures, and validity labels they need to explain what happened.
+  Capture what an agent saw, decided, and did so humans and AI analysts can replay the run, test explanations, and understand what happened.
 </p>
 
 <p align="center">
