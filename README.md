@@ -5,10 +5,10 @@
   </picture>
 </p>
 
-<h3 align="center">Replayable evidence for AI agents.</h3>
+<h3 align="center">Replay infrastructure for agent decisions.</h3>
 
 <p align="center">
-  Capture runs, replay hypotheses, and explain agent behavior with diffs, metrics, and validity labels.
+  Capture the evidence behind a run, branch from checkpoints, and give human or AI analysts the replays, diffs, metrics, fixtures, and validity labels they need to explain what happened.
 </p>
 
 <p align="center">
@@ -29,26 +29,27 @@
 
 ## Why isplay
 
-isplay is infrastructure for debugging agent decisions. It captures the evidence behind every turn: context, prompts, model and tool calls, artifacts, checkpoints, branches, replays, experiments, effects, and validity labels.
+isplay is replay and analysis infrastructure for understanding agent decisions. It records the context behind each turn: prompts, model calls, tool calls, artifacts, checkpoints, branches, replay outputs, experiments, effects, and validity labels.
 
-Use it when agent debugging needs to move past logs and vibes into replayable, testable decision forensics.
+That gives humans and analyst agents a shared evidence system for decision forensics: reconstruct the baseline run, test counterfactual hypotheses, compare divergences, rank effects, and separate observed facts from supported, fixture-sensitive, or unsupported explanations.
+
+Use it when logs are not enough and you need a repeatable way to ask why an agent made a decision, what evidence supports that explanation, and what uncertainty remains.
 
 ## Quick Start
 
-Requires Node `>=22.22.0`. `start` uses Docker for the default local Postgres.
+Most teams should start with the agent skill. It installs the right pieces for the repo, chooses the adapter, captures the next run, and starts the investigation loop.
 
 ```bash
-npm install isplay @isplay/sdk
-npx isplay start
+npx skills add combined-ai/isplay --skill isplay-analysis -a codex
 ```
 
-In another terminal:
+Restart Codex, then prompt the agent:
 
-```bash
-export ISPLAY_API_URL=http://127.0.0.1:7373
-npx isplay health
-npx isplay projects create --name "Agent Lab"
+```text
+Use $isplay-analysis to set up isplay for this repo, choose the right adapter, capture my next run, and return an evidence-bounded RCA report.
 ```
+
+Manual CLI and SDK setup are covered in the [docs](https://isplay.dev/docs/install).
 
 ## Surface Area
 
