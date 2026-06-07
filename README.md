@@ -40,13 +40,13 @@ Use it when logs are not enough and you need a repeatable way to ask why an agen
 Most teams should start with the agent skill. It installs the right pieces for the repo, chooses the adapter, captures the next run, and starts the investigation loop.
 
 ```bash
-npx skills add combined-ai/isplay --skill isplay-analysis -a codex
+npx skills add combined-ai/isplay --skill isplay-analysis
 ```
 
-Restart Codex, then prompt the agent:
+Restart your agent app, then ask it to run the skill:
 
 ```text
-Use $isplay-analysis to set up isplay for this repo, choose the right adapter, capture my next run, and return an evidence-bounded RCA report.
+Use the isplay-analysis skill to set up isplay for this repo, choose the right adapter, capture my next run, and return an evidence-bounded RCA report.
 ```
 
 Manual CLI and SDK setup are covered in the [docs](https://isplay.dev/docs/install).
