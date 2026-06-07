@@ -471,6 +471,40 @@ html {
     @apply w-1/5 flex-none overflow-hidden border-r border-dashed border-white/50 px-4 py-5;
   }
 
+  @media screen and (max-width: 767px) {
+    .about_logos-wrapper {
+      gap: 0.75rem;
+    }
+
+    .about_logos-group,
+    .splide__list.is-about-partners {
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .about_logos-group {
+      border-left: 0;
+    }
+
+    .about_logos-link,
+    .splide__slide.is-about-partners {
+      flex: 1 1 8.75rem;
+      max-width: 11rem;
+      min-width: min(8.75rem, 100%);
+      justify-content: center;
+      border: 1px dashed rgb(255 255 255 / 38%);
+      padding: 0.875rem 1rem;
+      text-align: center;
+    }
+
+    .splide.is-about-partners,
+    .splide__track.is-about-partners {
+      overflow: visible;
+      border: 0;
+    }
+  }
+
   .section_enterprise {
     @apply relative z-[1] bg-[#010101];
   }
@@ -567,7 +601,9 @@ html {
 
     .enterprice_card {
       width: 100%;
-      max-width: 20rem;
+      max-width: 18.5rem;
+      align-items: center;
+      text-align: center;
     }
 
     .enterprice_card-icon-box {
@@ -584,6 +620,16 @@ html {
 
   .enterprice_card-copy {
     @apply flex flex-col gap-2;
+  }
+
+  @media screen and (max-width: 767px) {
+    .enterprice_card-copy {
+      align-items: center;
+    }
+
+    .enterprice_card-copy p {
+      max-width: 18rem;
+    }
   }
 
   .card_icon-corner {

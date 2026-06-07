@@ -44,7 +44,7 @@ export function Install() {
               <div className="install_preview-action">
                 <CommandBlock featured>{skillInstallCommand}</CommandBlock>
                 <p data-fade-in-stagger="line" className="t-paragraph-1-rg text-color-light-gray">
-                  Recommended: install the skill, restart Codex, then prompt $isplay-analysis to choose the adapter, capture a run, and analyze it.
+                  Recommended: install the skill, restart your agent app, then ask it to choose the adapter, capture a run, and analyze it.
                 </p>
                 <div className="button-group">
                   <ButtonIcon label="Install docs" href="/docs/install" variant="transparent" eventName="Agent-install-home" />
